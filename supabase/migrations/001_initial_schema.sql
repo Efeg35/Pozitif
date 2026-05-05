@@ -109,9 +109,37 @@ CREATE TABLE IF NOT EXISTS public.listing_images (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
+-- ============================================================
+-- FUNCTION: storage_object_listing_id
+-- MUST be declared BEFORE the CHECK constraint below.
+-- PostgreSQL resolves function references at constraint-definition
+-- time — forward-references in CHECK constraints do NOT work.
+-- Extract listing_id UUID from storage object path.
+-- Expected format: {listing_id}/{timestamp}-{filename}
+-- Returns NULL if the first segment is not a valid UUID.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.storage_object_listing_id(object_name text)
+RETURNS uuid
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+AS $$
+DECLARE
+  first_segment text;
+BEGIN
+  first_segment := split_part(object_name, '/', 1);
+
+  IF first_segment ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+    RETURN first_segment::uuid;
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
 -- Enforce that storage_path is actually inside the folder of the owning listing.
--- Requires public.storage_object_listing_id() — added below — but Postgres
--- defers function resolution to execution time, so forward-reference is fine here.
+-- NULL guard: if storage_object_listing_id() returns NULL the path format is
+-- invalid — the row must be rejected, not silently accepted.
 -- We use DROP/ADD so this migration is safe to re-run.
 ALTER TABLE public.listing_images
   DROP CONSTRAINT IF EXISTS listing_images_storage_path_matches_listing;
@@ -119,7 +147,8 @@ ALTER TABLE public.listing_images
 ALTER TABLE public.listing_images
   ADD CONSTRAINT listing_images_storage_path_matches_listing
   CHECK (
-    public.storage_object_listing_id(storage_path) = listing_id
+    public.storage_object_listing_id(storage_path) IS NOT NULL
+    AND public.storage_object_listing_id(storage_path) = listing_id
   );
 
 -- ============================================================
@@ -387,33 +416,6 @@ SELECT
 FROM public.agents;
 
 GRANT SELECT ON public.public_agents TO anon, authenticated;
-
--- ============================================================
--- STORAGE HELPER FUNCTION
--- Extract listing_id from storage object path:
--- listing-images/{listing_id}/{timestamp}-{filename}
--- In storage.objects.name, bucket prefix is not included.
--- Expected object name:
--- {listing_id}/{timestamp}-{filename}
--- ============================================================
-CREATE OR REPLACE FUNCTION public.storage_object_listing_id(object_name text)
-RETURNS uuid
-LANGUAGE plpgsql
-IMMUTABLE
-STRICT
-AS $$
-DECLARE
-  first_segment text;
-BEGIN
-  first_segment := split_part(object_name, '/', 1);
-
-  IF first_segment ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
-    RETURN first_segment::uuid;
-  END IF;
-
-  RETURN NULL;
-END;
-$$;
 
 -- ============================================================
 -- STORAGE BUCKET
