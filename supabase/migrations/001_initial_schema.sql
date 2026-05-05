@@ -6,6 +6,9 @@
 -- ============================================================
 -- EXTENSIONS
 -- ============================================================
+-- Safety: ensure extensions schema exists for local Postgres environments.
+-- Supabase cloud already has this schema, so this is a no-op there.
+CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 -- ============================================================
@@ -98,8 +101,26 @@ CREATE TABLE IF NOT EXISTS public.listing_images (
   display_order  integer NOT NULL DEFAULT 0 CHECK (display_order >= 0),
   is_cover       boolean NOT NULL DEFAULT false,
 
+  -- NOTE: Cover image changes MUST be done in a single transaction / RPC:
+  --   1. Set is_cover = false for all images of the same listing_id.
+  --   2. Set is_cover = true for the chosen image.
+  -- Doing it in two separate UPDATE calls will violate the unique partial index.
+
   created_at     timestamptz NOT NULL DEFAULT now()
 );
+
+-- Enforce that storage_path is actually inside the folder of the owning listing.
+-- Requires public.storage_object_listing_id() — added below — but Postgres
+-- defers function resolution to execution time, so forward-reference is fine here.
+-- We use DROP/ADD so this migration is safe to re-run.
+ALTER TABLE public.listing_images
+  DROP CONSTRAINT IF EXISTS listing_images_storage_path_matches_listing;
+
+ALTER TABLE public.listing_images
+  ADD CONSTRAINT listing_images_storage_path_matches_listing
+  CHECK (
+    public.storage_object_listing_id(storage_path) = listing_id
+  );
 
 -- ============================================================
 -- TABLE: customers
@@ -291,6 +312,20 @@ CREATE TRIGGER office_settings_updated_at
 -- TRIGGER FUNCTION: auto-create agent row on auth.users insert
 -- First user ever becomes admin.
 -- Advisory lock prevents race condition during first signup.
+--
+-- SECURITY WARNING — PUBLIC SIGNUP MUST BE DISABLED:
+-- This trigger makes the very first registered user an admin.
+-- If Supabase Auth "Enable Sign Ups" is left ON, anyone (bot, random
+-- visitor, wrong email) can register before you and become the admin.
+--
+-- ACTION REQUIRED before going live:
+--   1. Supabase Dashboard → Authentication → Providers → Email
+--      → Disable "Enable Sign Ups" (set to OFF).
+--   2. Create the first admin account manually:
+--      Dashboard → Authentication → Users → "Invite user"
+--      OR via a one-time server script using service_role.
+--   3. After the first admin exists, new agents are added only through
+--      the admin panel (invite flow), never via a public register page.
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -383,6 +418,20 @@ $$;
 -- ============================================================
 -- STORAGE BUCKET
 -- ============================================================
+-- DECISION: public = true
+-- Listing images are inherently public content (shown on the website).
+-- This simplifies URL generation — no signed URLs needed for display.
+--
+-- TRADE-OFF: If a listing is set to 'pasif' or 'taslak', the DB-level
+-- RLS policy (listing_images_public_select_active / storage_listing_images_public_select)
+-- will block the image rows from being returned via the API.
+-- However, if the raw storage URL is already known/cached by a browser or
+-- third party, the file remains directly accessible at that URL because
+-- Supabase bypasses RLS for public buckets on direct GET requests.
+--
+-- For MVP / real estate context: acceptable. Listing images are not sensitive.
+-- If you require strict "pasif ilan = no image access", set public = false
+-- and serve images via signed URLs or a Next.js /api/images/[...path] proxy route.
 INSERT INTO storage.buckets (
   id,
   name,
@@ -424,6 +473,11 @@ DROP POLICY IF EXISTS "agents_anon_select" ON public.agents;
 DROP POLICY IF EXISTS "agents_self_select" ON public.agents;
 DROP POLICY IF EXISTS "agents_self_update" ON public.agents;
 DROP POLICY IF EXISTS "agents_admin_all" ON public.agents;
+DROP POLICY IF EXISTS "agents_admin_select" ON public.agents;
+DROP POLICY IF EXISTS "agents_admin_insert" ON public.agents;
+DROP POLICY IF EXISTS "agents_admin_update" ON public.agents;
+-- NOTE: agents_admin_delete intentionally not dropped/created.
+-- Agent deletion must go through service_role (server action only).
 
 -- listings
 DROP POLICY IF EXISTS "listings_anon_select" ON public.listings;
@@ -499,13 +553,33 @@ CREATE POLICY "agents_self_update"
     AND is_admin = false
   );
 
--- Admins have full access.
-CREATE POLICY "agents_admin_all"
+-- Admins can read all agent profiles (e.g., to list team members).
+CREATE POLICY "agents_admin_select"
   ON public.agents
-  FOR ALL
+  FOR SELECT
+  TO authenticated
+  USING (public.is_admin());
+
+-- Admins can insert new agent rows (e.g., when inviting a new user).
+CREATE POLICY "agents_admin_insert"
+  ON public.agents
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin());
+
+-- Admins can update any agent profile (e.g., to toggle is_admin).
+CREATE POLICY "agents_admin_update"
+  ON public.agents
+  FOR UPDATE
   TO authenticated
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
+
+-- INTENTIONALLY NO agents_admin_delete policy.
+-- Deleting an agent row removes their access permanently and can corrupt
+-- admin sessions if the admin deletes themselves. All agent/user deletions
+-- must be performed via a dedicated server action using service_role,
+-- which bypasses RLS and handles cleanup atomically.
 
 -- ============================================================
 -- RLS POLICIES: listings
