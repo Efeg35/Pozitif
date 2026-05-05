@@ -18,19 +18,20 @@ import { cn } from '@/lib/utils'
 import type { Agent } from '@/lib/types'
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard',    href: '/admin' },
-  { icon: Home,            label: 'İlanlar',      href: '/admin/ilanlar' },
-  { icon: Users,           label: 'Müşteriler',   href: '/admin/musteriler' },
-  { icon: CalendarDays,    label: 'Randevular',   href: '/admin/randevular' },
-  { icon: MessageSquare,   label: 'Talepler',     href: '/admin/talepler' },
-  { icon: Settings,        label: 'Ayarlar',      href: '/admin/ayarlar' },
+  { icon: LayoutDashboard, label: 'Dashboard',    href: '/admin',             adminOnly: false },
+  { icon: Home,            label: 'İlanlar',      href: '/admin/ilanlar',     adminOnly: false },
+  { icon: Users,           label: 'Müşteriler',   href: '/admin/musteriler',  adminOnly: false },
+  { icon: CalendarDays,    label: 'Randevular',   href: '/admin/randevular',  adminOnly: false },
+  { icon: MessageSquare,   label: 'Talepler',     href: '/admin/talepler',    adminOnly: false },
+  { icon: Settings,        label: 'Ayarlar',      href: '/admin/ayarlar',     adminOnly: true  },
 ]
 
 interface SidebarProps {
   agent: Pick<Agent, 'full_name' | 'title' | 'avatar_url'> | null
+  is_admin: boolean
 }
 
-export default function Sidebar({ agent }: SidebarProps) {
+export default function Sidebar({ agent, is_admin }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -49,7 +50,7 @@ export default function Sidebar({ agent }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {navItems.map(({ icon: Icon, label, href }) => (
+        {navItems.filter(item => !item.adminOnly || is_admin).map(({ icon: Icon, label, href }) => (
           <Link
             key={href}
             href={href}
