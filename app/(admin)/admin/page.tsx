@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Home, CheckCircle, Users, CalendarDays, MessageSquare, ArrowRight } from 'lucide-react'
 
 export default async function DashboardPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
