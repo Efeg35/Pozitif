@@ -1,4 +1,18 @@
-// Database types matching the Supabase schema exactly
+// ============================================================
+// Database types — kept in sync with 001_initial_schema.sql
+// ============================================================
+
+// ── Enum-like union types ────────────────────────────────────
+export type ListingType       = 'satilik' | 'kiralik'
+export type PropertyType      = 'daire' | 'villa' | 'arsa' | 'dukkan' | 'ofis'
+export type ListingStatus     = 'taslak' | 'aktif' | 'satildi' | 'kiralandi' | 'pasif'
+export type Currency          = 'TRY' | 'USD' | 'EUR'
+export type AppointmentStatus = 'bekliyor' | 'tamamlandi' | 'iptal'
+export type InquiryStatus     = 'yeni' | 'incelendi' | 'yanitlandi'
+export type InterestType      = 'satilik' | 'kiralik' | 'her_ikisi'
+export type CustomerStatus    = 'aktif' | 'pasif'
+
+// ── Table row types ──────────────────────────────────────────
 
 export type Agent = {
   id: string
@@ -8,6 +22,7 @@ export type Agent = {
   avatar_url: string | null
   is_admin: boolean
   created_at: string
+  updated_at: string
 }
 
 export type Listing = {
@@ -16,10 +31,10 @@ export type Listing = {
   slug: string
   description: string | null
   price: number
-  currency: string
-  listing_type: string
-  property_type: string
-  status: string
+  currency: Currency
+  listing_type: ListingType
+  property_type: PropertyType
+  status: ListingStatus
   rooms: number | null
   bathrooms: number | null
   living_rooms: number | null
@@ -62,12 +77,12 @@ export type Customer = {
   phone: string | null
   email: string | null
   notes: string | null
-  interest_type: string | null
+  interest_type: InterestType | null
   budget_min: number | null
   budget_max: number | null
   preferred_districts: string[] | null
-  preferred_property_types: string[] | null
-  status: string
+  preferred_property_types: PropertyType[] | null
+  status: CustomerStatus
   agent_id: string | null
   created_at: string
   updated_at: string
@@ -80,9 +95,10 @@ export type Appointment = {
   agent_id: string | null
   appointment_date: string
   duration_minutes: number
-  status: string
+  status: AppointmentStatus
   notes: string | null
   created_at: string
+  updated_at: string
 }
 
 export type Inquiry = {
@@ -93,7 +109,8 @@ export type Inquiry = {
   email: string | null
   message: string | null
   honeypot: string | null
-  status: string
+  status: InquiryStatus
+  source: string
   created_at: string
 }
 
@@ -113,7 +130,8 @@ export type OfficeSettings = {
   updated_at: string
 }
 
-// Joined types for common queries
+// ── Joined types for common queries ─────────────────────────
+
 export type ListingWithImages = Listing & {
   listing_images: ListingImage[]
 }
@@ -121,4 +139,10 @@ export type ListingWithImages = Listing & {
 export type ListingWithImagesAndAgent = Listing & {
   listing_images: ListingImage[]
   agents: Pick<Agent, 'full_name' | 'title'> | null
+}
+
+export type AppointmentWithRelations = Appointment & {
+  customers: Pick<Customer, 'full_name' | 'phone'> | null
+  listings: Pick<Listing, 'title' | 'slug'> | null
+  agents: Pick<Agent, 'full_name'> | null
 }
