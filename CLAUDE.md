@@ -499,11 +499,11 @@ NEXT_PUBLIC_SITE_URL=
 ## Current Development Status
 
 - [x] Phase 1: Project setup, Supabase schema, auth, admin layout
-- [ ] Phase 2: Listing CRUD + image upload
-- [ ] Phase 3: Public site (home, listing list, listing detail + SEO)
+- [x] Phase 2: Listing CRUD + image upload
+- [x] Phase 3: Public site (home, listing list, listing detail + SEO)
 - [ ] Phase 4: CRM (customers, appointments)
 - [ ] Phase 5: Inquiries + WhatsApp integration
 
-**Currently working on: Phase 2**
+**Currently working on: Phase 4**
 
 > Update this checklist as phases are completed.
