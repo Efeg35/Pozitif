@@ -27,33 +27,38 @@ export default function Navbar({ settings }: NavbarProps) {
     : null
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-zinc-200 bg-white shadow-sm">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <header className="sticky top-0 z-40 w-full border-b border-zinc-100 bg-white/95 backdrop-blur-sm shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo + Office name */}
-        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+        <Link href="/" className="flex items-center gap-3 flex-shrink-0">
           {settings?.logo_url ? (
             <Image
               src={settings.logo_url}
               alt={officeName}
-              width={36}
-              height={36}
-              className="rounded-md object-contain"
+              width={40}
+              height={40}
+              className="rounded-lg object-contain"
             />
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900 text-sm font-bold text-white">
               {officeName.slice(0, 1).toUpperCase()}
             </div>
           )}
-          <span className="text-base font-bold text-zinc-800">{officeName}</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold tracking-wide text-zinc-900">{officeName}</span>
+            <span className="text-[11px] font-medium tracking-wider text-zinc-400 uppercase">
+              İzmir Gayrimenkul Danışmanlığı
+            </span>
+          </div>
         </Link>
 
         {/* Center nav — desktop */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-0.5">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50 transition-colors"
             >
               {link.label}
             </Link>
@@ -62,24 +67,22 @@ export default function Navbar({ settings }: NavbarProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          {/* WhatsApp button — desktop */}
           {waLink && (
             <a
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-1.5 rounded-lg bg-green-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-green-600 transition-colors"
+              className="hidden md:flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp
             </a>
           )}
 
-          {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
-            className="flex items-center justify-center rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 md:hidden"
+            className="flex items-center justify-center rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 md:hidden"
             aria-label={mobileOpen ? 'Menüyü kapat' : 'Menüyü aç'}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -107,7 +110,7 @@ export default function Navbar({ settings }: NavbarProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileOpen(false)}
-                className="mt-2 flex items-center gap-2 rounded-lg bg-green-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-green-600 transition-colors"
+                className="mt-2 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
               >
                 <MessageCircle className="h-4 w-4" />
                 WhatsApp ile İletişim

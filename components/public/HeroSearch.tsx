@@ -23,15 +23,15 @@ export default function HeroSearch({ districts }: HeroSearchProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl rounded-2xl bg-white p-3 shadow-xl">
+    <div className="w-full rounded-2xl border border-zinc-200 bg-white p-2 shadow-lg">
       <div className="flex flex-col gap-2 sm:flex-row">
         {/* Satılık / Kiralık */}
         <select
           value={listingType}
           onChange={(e) => setListingType(e.target.value)}
-          className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="flex-1 rounded-xl border-0 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-900/20"
         >
-          <option value="">Tümü (Satılık / Kiralık)</option>
+          <option value="">Satılık veya Kiralık</option>
           <option value="satilik">{LISTING_TYPE_LABELS['satilik']}</option>
           <option value="kiralik">{LISTING_TYPE_LABELS['kiralik']}</option>
         </select>
@@ -40,7 +40,7 @@ export default function HeroSearch({ districts }: HeroSearchProps) {
         <select
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
-          className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="flex-1 rounded-xl border-0 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-blue-900/20"
         >
           <option value="">Tüm İlçeler</option>
           {districts.map((d) => (
@@ -54,7 +54,7 @@ export default function HeroSearch({ districts }: HeroSearchProps) {
         <button
           type="button"
           onClick={handleSearch}
-          className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors"
         >
           <Search className="h-4 w-4" />
           Ara
