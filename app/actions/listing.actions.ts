@@ -10,13 +10,21 @@ import {
   type CreateListingInput,
   type UpdateListingInput,
 } from '@/lib/schemas/listing.schema'
-import type { Listing } from '@/lib/types'
+import type { Listing, ListingImage } from '@/lib/types'
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── Shared types ──────────────────────────────────────────────
 
 type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string }
+
+/** Listing row as returned by getListings/getListing (joined) */
+export type ListingWithRelations = Listing & {
+  listing_images: Pick<ListingImage, 'id' | 'url' | 'is_cover' | 'display_order'>[]
+  agents: { full_name: string; title?: string | null } | null
+}
+
+// ── Helpers ───────────────────────────────────────────────────
 
 async function getAuthenticatedAgent() {
   const supabase = await createClient()
@@ -57,6 +65,21 @@ async function ensureUniqueSlug(
   return `${baseSlug}-${Date.now()}`
 }
 
+/**
+ * Validates that a slug is non-empty after slugification and matches the
+ * expected URL-safe pattern. Returns an error string or null.
+ */
+function validateSlug(slug: string): string | null {
+  if (!slug || slug.trim().length < 3) {
+    return 'Geçerli bir URL slug oluşturulamadı. Lütfen başlığı kontrol edin.'
+  }
+  // Allow only lowercase letters, digits and hyphens
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    return 'Slug yalnızca küçük harf, rakam ve kısa çizgi içerebilir.'
+  }
+  return null
+}
+
 // ── Queries ───────────────────────────────────────────────────
 
 interface ListingFilters {
@@ -67,7 +90,7 @@ interface ListingFilters {
 
 export async function getListings(
   filters?: ListingFilters
-): Promise<ActionResult<Listing[]>> {
+): Promise<ActionResult<ListingWithRelations[]>> {
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
@@ -87,13 +110,15 @@ export async function getListings(
     const { data, error } = await query
 
     if (error) return { success: false, error: error.message }
-    return { success: true, data: (data ?? []) as unknown as Listing[] }
+    return { success: true, data: (data ?? []) as unknown as ListingWithRelations[] }
   } catch (err) {
     return { success: false, error: String(err) }
   }
 }
 
-export async function getListing(id: string): Promise<ActionResult<Listing & { listing_images: unknown[]; agents: unknown }>> {
+export async function getListing(
+  id: string
+): Promise<ActionResult<ListingWithRelations>> {
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
@@ -109,7 +134,7 @@ export async function getListing(id: string): Promise<ActionResult<Listing & { l
     const { data, error } = await query.single()
 
     if (error || !data) return { success: false, error: 'İlan bulunamadı' }
-    return { success: true, data: data as unknown as Listing & { listing_images: unknown[]; agents: unknown } }
+    return { success: true, data: data as unknown as ListingWithRelations }
   } catch (err) {
     return { success: false, error: String(err) }
   }
@@ -121,7 +146,7 @@ export async function createListing(
   input: CreateListingInput
 ): Promise<ActionResult<Listing>> {
   try {
-    const { supabase, user } = await getAuthenticatedAgent()
+    const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
     const parsed = createListingSchema.safeParse(input)
     if (!parsed.success) {
@@ -130,8 +155,17 @@ export async function createListing(
 
     const data = parsed.data
 
-    // Generate slug from title if not provided / too short
-    const baseSlug = data.slug?.trim() ? slugify(data.slug) : slugify(data.title)
+    // [1] Non-admin kullanıcılar is_featured set edemez
+    if (!isAdmin) {
+      data.is_featured = false
+    }
+
+    // [4] Slug validation before hitting the DB
+    const rawSlug = data.slug?.trim() ? data.slug : data.title
+    const baseSlug = slugify(rawSlug)
+    const slugError = validateSlug(baseSlug)
+    if (slugError) return { success: false, error: slugError }
+
     const slug = await ensureUniqueSlug(supabase, baseSlug)
 
     const { data: listing, error } = await supabase
@@ -177,12 +211,21 @@ export async function updateListing(
 
     const updateData = parsed.data
 
-    // If title changed and slug wasn't manually changed, regenerate slug
+    // [1] Non-admin kullanıcılar is_featured değiştiremez
+    if (!isAdmin) {
+      delete updateData.is_featured
+    }
+
+    // [4] Slug validation
     if (updateData.title !== existing.title && updateData.slug === existing.slug) {
       const baseSlug = slugify(updateData.title)
+      const slugError = validateSlug(baseSlug)
+      if (slugError) return { success: false, error: slugError }
       updateData.slug = await ensureUniqueSlug(supabase, baseSlug, id)
     } else if (updateData.slug && updateData.slug !== existing.slug) {
       const baseSlug = slugify(updateData.slug)
+      const slugError = validateSlug(baseSlug)
+      if (slugError) return { success: false, error: slugError }
       updateData.slug = await ensureUniqueSlug(supabase, baseSlug, id)
     }
 

@@ -158,9 +158,17 @@ export default function ImageUploader({
     next.splice(toIdx, 0, moved)
     const reordered = next.map((img, i) => ({ ...img, display_order: i }))
 
+    // Optimistic update
+    const previous = images
     updateImages(reordered)
-    await reorderImages(listingId, reordered.map((img) => img.id))
     setDraggingId(null)
+
+    // Persist — rollback on failure
+    const result = await reorderImages(listingId, reordered.map((img) => img.id))
+    if (!result.success) {
+      setError(result.error)
+      updateImages(previous)
+    }
   }
 
   function handleItemDragEnd() {
