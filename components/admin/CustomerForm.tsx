@@ -1,10 +1,15 @@
 'use client'
 
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { Resolver } from 'react-hook-form'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { CustomerFormValues } from '@/lib/schemas/customer.schema'
-import type { CreateCustomerInput } from '@/lib/schemas/customer.schema'
+import {
+  createCustomerSchema,
+  type CustomerFormValues,
+  type CreateCustomerInput,
+} from '@/lib/schemas/customer.schema'
 import {
   CUSTOMER_STATUSES,
   CUSTOMER_STATUS_LABELS,
@@ -26,8 +31,12 @@ export default function CustomerForm({ mode, initial, onSubmit }: CustomerFormPr
   const [serverError, setServerError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  const { register, handleSubmit, formState: { errors }, setError } =
+  const { register, handleSubmit, formState: { errors } } =
     useForm<CustomerFormValues>({
+      // zodResolver validates on submit; cast needed because z.preprocess
+      // outputs a different shape than the raw form string values.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resolver: zodResolver(createCustomerSchema) as unknown as Resolver<CustomerFormValues>,
       defaultValues: {
         full_name:  initial?.full_name ?? '',
         phone:      initial?.phone ?? '',
@@ -47,10 +56,10 @@ export default function CustomerForm({ mode, initial, onSubmit }: CustomerFormPr
     })
 
   const handleFormSubmit = (values: CustomerFormValues) => {
-    if (!values.full_name?.trim()) {
-      setError('full_name', { message: 'Ad soyad zorunludur' })
-      return
-    }
+    // preferred_districts: comma-separated string → string[] | undefined
+    const districts = values.preferred_districts?.trim()
+      ? values.preferred_districts.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined
 
     const payload: CreateCustomerInput = {
       full_name:   values.full_name.trim(),
@@ -61,9 +70,7 @@ export default function CustomerForm({ mode, initial, onSubmit }: CustomerFormPr
       interest_type: (values.interest_type as CreateCustomerInput['interest_type']) || undefined,
       budget_min:  values.budget_min ? parseInt(values.budget_min, 10) : undefined,
       budget_max:  values.budget_max ? parseInt(values.budget_max, 10) : undefined,
-      preferred_districts: values.preferred_districts?.trim()
-        ? values.preferred_districts.split(',').map((s) => s.trim()).filter(Boolean)
-        : undefined,
+      preferred_districts:      districts,
       preferred_property_types: values.preferred_property_types?.length
         ? (values.preferred_property_types as CreateCustomerInput['preferred_property_types'])
         : undefined,
