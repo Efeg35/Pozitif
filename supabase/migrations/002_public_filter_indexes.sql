@@ -5,6 +5,11 @@
 -- filter query already restricts to active listings.
 -- ============================================================
 
+-- rooms — used for room count filter
+CREATE INDEX IF NOT EXISTS listings_rooms_idx
+  ON public.listings(rooms)
+  WHERE status = 'aktif';
+
 -- area_m2 — used for min/max area filter + area_desc sort
 CREATE INDEX IF NOT EXISTS listings_area_m2_idx
   ON public.listings(area_m2)
@@ -38,4 +43,14 @@ CREATE INDEX IF NOT EXISTS listings_dues_idx
 -- deposit — used for max_deposit filter
 CREATE INDEX IF NOT EXISTS listings_deposit_idx
   ON public.listings(deposit)
+  WHERE status = 'aktif';
+
+-- price — used for min/max price filter + price sorting
+CREATE INDEX IF NOT EXISTS listings_public_price_idx
+  ON public.listings(price)
+  WHERE status = 'aktif';
+
+-- default public sorting: featured first, newest next
+CREATE INDEX IF NOT EXISTS listings_public_featured_created_idx
+  ON public.listings(is_featured DESC, created_at DESC)
   WHERE status = 'aktif';
