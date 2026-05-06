@@ -1,7 +1,9 @@
 import { getCustomers } from '@/app/actions/customer.actions'
 import { createAppointment } from '@/app/actions/appointment.actions'
+import { createClient } from '@/lib/supabase/server'
 import AppointmentForm from '@/components/admin/AppointmentForm'
 import type { CreateAppointmentInput } from '@/lib/schemas/appointment.schema'
+import type { ListingOption } from '@/components/admin/AppointmentForm'
 
 interface Props {
   searchParams: Promise<{ customer_id?: string }>
@@ -9,8 +11,23 @@ interface Props {
 
 export default async function YeniRandevuPage({ searchParams }: Props) {
   const { customer_id } = await searchParams
-  const customersResult = await getCustomers()
+
+  const supabase = await createClient()
+  const [customersResult, { data: listingsData }] = await Promise.all([
+    getCustomers(),
+    supabase
+      .from('listings')
+      .select('id, title, district')
+      .eq('status', 'yayinda')
+      .order('title', { ascending: true }),
+  ])
+
   const customers = customersResult.success ? customersResult.data : []
+  const listings: ListingOption[] = (listingsData ?? []).map((l) => ({
+    id: l.id as string,
+    title: l.title as string,
+    district: (l.district as string | null) ?? null,
+  }))
 
   async function handleCreate(data: CreateAppointmentInput) {
     'use server'
@@ -26,6 +43,7 @@ export default async function YeniRandevuPage({ searchParams }: Props) {
       <AppointmentForm
         mode="create"
         customers={customers}
+        listings={listings}
         defaultCustomerId={customer_id}
         onSubmit={handleCreate}
       />

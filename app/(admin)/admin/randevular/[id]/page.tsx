@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { getAppointment, updateAppointment } from '@/app/actions/appointment.actions'
 import { getCustomers } from '@/app/actions/customer.actions'
+import { createClient } from '@/lib/supabase/server'
 import AppointmentForm from '@/components/admin/AppointmentForm'
 import DeleteAppointmentButton from '@/components/admin/DeleteAppointmentButton'
 import type { CreateAppointmentInput } from '@/lib/schemas/appointment.schema'
+import type { ListingOption } from '@/components/admin/AppointmentForm'
 import { APPOINTMENT_STATUS_LABELS } from '@/lib/constants'
 import type { AppointmentStatus } from '@/lib/types'
 
@@ -15,15 +17,27 @@ interface Props {
 
 export default async function RandevuDetayPage({ params }: Props) {
   const { id } = await params
-  const [result, customersResult] = await Promise.all([
+
+  const supabase = await createClient()
+  const [result, customersResult, { data: listingsData }] = await Promise.all([
     getAppointment(id),
     getCustomers(),
+    supabase
+      .from('listings')
+      .select('id, title, district')
+      .eq('status', 'yayinda')
+      .order('title', { ascending: true }),
   ])
 
   if (!result.success) notFound()
 
   const appt = result.data
   const customers = customersResult.success ? customersResult.data : []
+  const listings: ListingOption[] = (listingsData ?? []).map((l) => ({
+    id: l.id as string,
+    title: l.title as string,
+    district: (l.district as string | null) ?? null,
+  }))
 
   async function handleUpdate(data: CreateAppointmentInput) {
     'use server'
@@ -43,18 +57,25 @@ export default async function RandevuDetayPage({ params }: Props) {
             </h1>
             <p className="text-sm text-zinc-500 mt-1">
               {new Date(appt.appointment_date).toLocaleString('tr-TR', {
-                day: '2-digit', month: 'long', year: 'numeric',
-                hour: '2-digit', minute: '2-digit',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
               })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-            appt.status === 'tamamlandi' ? 'bg-green-100 text-green-700' :
-            appt.status === 'iptal' ? 'bg-red-100 text-red-700' :
-            'bg-yellow-100 text-yellow-700'
-          }`}>
+          <span
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              appt.status === 'tamamlandi'
+                ? 'bg-green-100 text-green-700'
+                : appt.status === 'iptal'
+                ? 'bg-red-100 text-red-700'
+                : 'bg-yellow-100 text-yellow-700'
+            }`}
+          >
             {APPOINTMENT_STATUS_LABELS[appt.status as AppointmentStatus]}
           </span>
           <DeleteAppointmentButton id={appt.id} />
@@ -74,6 +95,7 @@ export default async function RandevuDetayPage({ params }: Props) {
           mode="edit"
           initial={appt}
           customers={customers}
+          listings={listings}
           onSubmit={handleUpdate}
         />
       </div>

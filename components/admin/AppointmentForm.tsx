@@ -1,6 +1,5 @@
 'use client'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useForm } from 'react-hook-form'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -11,18 +10,44 @@ import {
 } from '@/lib/constants'
 import type { AppointmentWithRelations, CustomerWithRelations } from '@/lib/types'
 
+// ── Form values type — all strings ───────────────────────────
+type AppointmentFormValues = {
+  customer_id:      string
+  listing_id:       string
+  appointment_date: string
+  duration_minutes: string
+  status:           string
+  notes:            string
+}
+
+export interface ListingOption {
+  id: string
+  title: string
+  district: string | null
+}
+
 interface AppointmentFormProps {
   mode: 'create' | 'edit'
   initial?: AppointmentWithRelations
   customers: Pick<CustomerWithRelations, 'id' | 'full_name' | 'phone'>[]
+  listings?: ListingOption[]
   defaultCustomerId?: string
   onSubmit: (data: CreateAppointmentInput) => Promise<{ success: boolean; error?: string }>
 }
+
+const DURATION_OPTIONS = [
+  { value: '30',  label: '30 dakika' },
+  { value: '45',  label: '45 dakika' },
+  { value: '60',  label: '1 saat' },
+  { value: '90',  label: '1.5 saat' },
+  { value: '120', label: '2 saat' },
+]
 
 export default function AppointmentForm({
   mode,
   initial,
   customers,
+  listings = [],
   defaultCustomerId,
   onSubmit,
 }: AppointmentFormProps) {
@@ -30,27 +55,24 @@ export default function AppointmentForm({
   const [serverError, setServerError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  // Format datetime-local value from ISO string
   const toDatetimeLocal = (iso: string | null | undefined) => {
     if (!iso) return ''
-    try {
-      return new Date(iso).toISOString().slice(0, 16)
-    } catch {
-      return ''
-    }
+    try { return new Date(iso).toISOString().slice(0, 16) } catch { return '' }
   }
 
-  const { register, handleSubmit, formState: { errors }, setError } = useForm({
-    defaultValues: {
-      customer_id:      initial?.customers?.id ?? defaultCustomerId ?? '',
-      listing_id:       initial?.listings?.id ?? '',
-      appointment_date: toDatetimeLocal(initial?.appointment_date),
-      status:           initial?.status ?? 'bekliyor',
-      notes:            initial?.notes ?? '',
-    },
-  })
+  const { register, handleSubmit, formState: { errors }, setError } =
+    useForm<AppointmentFormValues>({
+      defaultValues: {
+        customer_id:      initial?.customers?.id ?? defaultCustomerId ?? '',
+        listing_id:       initial?.listings?.id ?? '',
+        appointment_date: toDatetimeLocal(initial?.appointment_date),
+        duration_minutes: String(initial?.duration_minutes ?? 60),
+        status:           initial?.status ?? 'bekliyor',
+        notes:            initial?.notes ?? '',
+      },
+    })
 
-  const handleFormSubmit = async (values: any) => {
+  const handleFormSubmit = (values: AppointmentFormValues) => {
     if (!values.customer_id) {
       setError('customer_id', { message: 'Müşteri seçimi zorunludur' })
       return
@@ -64,21 +86,22 @@ export default function AppointmentForm({
       customer_id:      values.customer_id,
       listing_id:       values.listing_id || undefined,
       appointment_date: new Date(values.appointment_date).toISOString(),
-      duration_minutes: 60,
-      status:           values.status,
-      notes:            values.notes || undefined,
+      duration_minutes: parseInt(values.duration_minutes, 10) || 60,
+      status:           values.status as CreateAppointmentInput['status'],
+      notes:            values.notes?.trim() || undefined,
     }
 
     setPending(true)
     setServerError(null)
-    const result = await onSubmit(payload)
-    if (!result.success) {
-      setServerError(result.error ?? 'Bir hata oluştu')
-      setPending(false)
-    } else {
-      router.push('/admin/randevular')
-      router.refresh()
-    }
+    onSubmit(payload).then((result) => {
+      if (!result.success) {
+        setServerError(result.error ?? 'Bir hata oluştu')
+        setPending(false)
+      } else {
+        router.push('/admin/randevular')
+        router.refresh()
+      }
+    })
   }
 
   return (
@@ -101,16 +124,34 @@ export default function AppointmentForm({
           <option value="">Müşteri seçiniz</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.full_name} — {c.phone}
+              {c.full_name}{c.phone ? ` — ${c.phone}` : ''}
             </option>
           ))}
         </select>
         {errors.customer_id && (
-          <p className="text-xs text-red-600">{errors.customer_id.message as string}</p>
+          <p className="text-xs text-red-600">{errors.customer_id.message}</p>
         )}
       </div>
 
-      {/* Tarih & Saat + Durum */}
+      {/* İlan (opsiyonel) */}
+      {listings.length > 0 && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-zinc-700">İlan (opsiyonel)</label>
+          <select
+            {...register('listing_id')}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">İlan seçiniz</option>
+            {listings.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.title}{l.district ? ` — ${l.district}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Tarih & Süre */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="block text-sm font-medium text-zinc-700">
@@ -122,23 +163,36 @@ export default function AppointmentForm({
             className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {errors.appointment_date && (
-            <p className="text-xs text-red-600">{errors.appointment_date.message as string}</p>
+            <p className="text-xs text-red-600">{errors.appointment_date.message}</p>
           )}
         </div>
 
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-zinc-700">
-            Durum <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-medium text-zinc-700">Süre</label>
           <select
-            {...register('status')}
+            {...register('duration_minutes')}
             className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {APPOINTMENT_STATUSES.map((s) => (
-              <option key={s} value={s}>{APPOINTMENT_STATUS_LABELS[s]}</option>
+            {DURATION_OPTIONS.map((d) => (
+              <option key={d.value} value={d.value}>{d.label}</option>
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Durum */}
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-zinc-700">
+          Durum <span className="text-red-500">*</span>
+        </label>
+        <select
+          {...register('status')}
+          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {APPOINTMENT_STATUSES.map((s) => (
+            <option key={s} value={s}>{APPOINTMENT_STATUS_LABELS[s]}</option>
+          ))}
+        </select>
       </div>
 
       {/* Notlar */}
