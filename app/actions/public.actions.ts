@@ -81,56 +81,33 @@ export async function getPublicListings(
   const from = (page - 1) * per_page
   const to = from + per_page - 1
 
-  // Build count query
-  let countQuery = supabase
-    .from('listings')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'aktif')
-
-  if (listing_type) countQuery = countQuery.eq('listing_type', listing_type)
-  if (property_type) countQuery = countQuery.eq('property_type', property_type)
-  if (district) countQuery = countQuery.eq('district', district)
-  if (min_price != null) countQuery = countQuery.gte('price', min_price)
-  if (max_price != null) countQuery = countQuery.lte('price', max_price)
-  if (rooms != null) {
-    if (rooms >= 4) {
-      countQuery = countQuery.gte('rooms', 4)
-    } else {
-      countQuery = countQuery.eq('rooms', rooms)
-    }
-  }
-
-  const { count } = await countQuery
-
-  // Build data query
-  let dataQuery = supabase
+  // Single query — returns both data and count in one round-trip
+  let query = supabase
     .from('listings')
     .select(`
       *,
       listing_images(id, url, storage_path, display_order, is_cover, listing_id, created_at),
       agents(full_name, title, phone, avatar_url)
-    `)
+    `, { count: 'exact' })
     .eq('status', 'aktif')
 
-  if (listing_type) dataQuery = dataQuery.eq('listing_type', listing_type)
-  if (property_type) dataQuery = dataQuery.eq('property_type', property_type)
-  if (district) dataQuery = dataQuery.eq('district', district)
-  if (min_price != null) dataQuery = dataQuery.gte('price', min_price)
-  if (max_price != null) dataQuery = dataQuery.lte('price', max_price)
+  if (listing_type) query = query.eq('listing_type', listing_type)
+  if (property_type) query = query.eq('property_type', property_type)
+  if (district) query = query.eq('district', district)
+  if (min_price != null) query = query.gte('price', min_price)
+  if (max_price != null) query = query.lte('price', max_price)
   if (rooms != null) {
     if (rooms >= 4) {
-      dataQuery = dataQuery.gte('rooms', 4)
+      query = query.gte('rooms', 4)
     } else {
-      dataQuery = dataQuery.eq('rooms', rooms)
+      query = query.eq('rooms', rooms)
     }
   }
 
-  dataQuery = dataQuery
+  const { data, count, error } = await query
     .order('is_featured', { ascending: false })
     .order('created_at', { ascending: false })
     .range(from, to)
-
-  const { data, error } = await dataQuery
 
   if (error) {
     console.error('getPublicListings error:', error)
