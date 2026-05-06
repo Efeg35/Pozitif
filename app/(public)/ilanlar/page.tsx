@@ -40,8 +40,8 @@ export async function generateMetadata({ searchParams }: ListingsPageProps): Pro
 
   const title =
     parts.length > 0
-      ? `${parts.join(' ')} İlanları | Pozitif Emlak`
-      : 'İlanlar | Pozitif Emlak'
+      ? `${parts.join(' ')} İlanları | Pozitif Gayrimenkul`
+      : 'İlanlar | Pozitif Gayrimenkul'
 
   return { title }
 }

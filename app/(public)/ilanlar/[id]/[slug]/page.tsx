@@ -16,13 +16,13 @@ interface Params {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const listing = await getPublicListing(params.id)
-  if (!listing) return { title: 'İlan bulunamadı | Pozitif Emlak' }
+  if (!listing) return { title: 'İlan bulunamadı | Pozitif Gayrimenkul' }
 
   const coverImage = listing.listing_images.find((img) => img.is_cover) ?? listing.listing_images[0]
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pozitifemiak.com'
 
   return {
-    title: `${listing.title} | Pozitif Emlak`,
+    title: `${listing.title} | Pozitif Gayrimenkul`,
     description:
       listing.description?.slice(0, 160) ??
       `${LISTING_TYPE_LABELS[listing.listing_type] ?? ''} ${PROPERTY_TYPE_LABELS[listing.property_type] ?? ''} — ${listing.district ?? ''} ${listing.city}`,

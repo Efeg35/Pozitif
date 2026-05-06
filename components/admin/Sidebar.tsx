@@ -45,7 +45,7 @@ export default function Sidebar({ agent, is_admin }: SidebarProps) {
       {/* Logo / Office Name */}
       <div className="flex items-center gap-2 px-4 py-5 border-b">
         <Building2 className="h-6 w-6 text-blue-700 shrink-0" />
-        <span className="font-bold text-zinc-900 text-sm leading-tight">Pozitif Emlak</span>
+        <span className="font-bold text-zinc-900 text-sm leading-tight">Pozitif Gayrimenkul</span>
       </div>
 
       {/* Navigation */}

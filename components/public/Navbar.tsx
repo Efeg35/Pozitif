@@ -19,7 +19,7 @@ const NAV_LINKS = [
 export default function Navbar({ settings }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const officeName = settings?.office_name ?? 'Pozitif Emlak'
+  const officeName = settings?.office_name ?? 'Pozitif Gayrimenkul'
   const whatsappPhone = settings?.whatsapp ?? settings?.phone
 
   const waLink = whatsappPhone

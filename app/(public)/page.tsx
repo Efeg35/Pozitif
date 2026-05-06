@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/utils'
 import type { PublicListing } from '@/app/actions/public.actions'
 
 export const metadata: Metadata = {
-  title: 'Pozitif Emlak | İzmir Gayrimenkul',
+  title: 'Pozitif Gayrimenkul | İzmir Gayrimenkul',
   description:
     "İzmir'de satılık ve kiralık daire, villa, arsa ilanları. Karşıyaka, Çeşme, Urla, Bornova ve tüm İzmir ilçelerinde güvenilir emlak danışmanlığı.",
 }
@@ -180,7 +180,7 @@ export default async function HomePage() {
                 {!heroListing && (
                   <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50 mb-1">
-                      Pozitif Emlak
+                      Pozitif Gayrimenkul
                     </p>
                     <p className="text-sm font-medium text-white/80">
                       İzmir&apos;in seçkin lokasyonlarında gayrimenkul danışmanlığı
@@ -230,7 +230,7 @@ export default async function HomePage() {
                 Neden Biz?
               </p>
               <h2 className="text-2xl font-bold leading-tight text-zinc-900 sm:text-3xl">
-                Neden<br />Pozitif Emlak?
+                Neden<br />Pozitif Gayrimenkul?
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-zinc-500 max-w-xs">
                 Doğru mülkü bulmak için doğru ortağa ihtiyacınız var.

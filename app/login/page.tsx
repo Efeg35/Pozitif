@@ -54,7 +54,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">Giriş Yap</CardTitle>
           <CardDescription className="text-center">
-            Pozitif Emlak yönetim paneli
+            Pozitif Gayrimenkul yönetim paneli
           </CardDescription>
         </CardHeader>
         <CardContent>

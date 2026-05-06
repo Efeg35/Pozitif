@@ -4,8 +4,8 @@ import { getOfficeSettings } from '@/app/actions/public.actions'
 import InquiryForm from '@/components/public/InquiryForm'
 
 export const metadata: Metadata = {
-  title: 'İletişim | Pozitif Emlak',
-  description: 'Pozitif Emlak ile iletişime geçin. Telefon, e-posta veya formu doldurun.',
+  title: 'İletişim | Pozitif Gayrimenkul',
+  description: 'Pozitif Gayrimenkul ile iletişime geçin. Telefon, e-posta veya formu doldurun.',
 }
 
 export default async function ContactPage() {

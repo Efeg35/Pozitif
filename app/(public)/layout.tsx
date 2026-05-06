@@ -24,7 +24,7 @@ function FacebookIcon({ className }: { className?: string }) {
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = await getOfficeSettings()
-  const officeName = settings?.office_name ?? 'Pozitif Emlak'
+  const officeName = settings?.office_name ?? 'Pozitif Gayrimenkul'
   const year = new Date().getFullYear()
 
   return (
