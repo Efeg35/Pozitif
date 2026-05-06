@@ -7,8 +7,59 @@ import ListingGrid from '@/components/public/ListingGrid'
 import {
   LISTING_TYPE_LABELS,
   PROPERTY_TYPE_LABELS,
+  HEATING_TYPES,
+  BUILDING_AGE_RANGES,
+  FLOOR_RANGES,
+  SORT_OPTIONS,
 } from '@/lib/constants'
 import type { BuildingAgeRange, FloorRange, HeatingType, SortOption } from '@/lib/types'
+
+// ── Runtime-safe parse helpers ─────────────────────────────
+
+/** Returns a finite positive number, or undefined for invalid/NaN/negative input. */
+function parsePositiveNumber(raw: string | undefined): number | undefined {
+  if (!raw) return undefined
+  const n = parseFloat(raw)
+  if (!isFinite(n) || n < 0) return undefined
+  return n
+}
+
+/** Returns a finite positive integer, or undefined for invalid/NaN/negative input. */
+function parsePositiveInt(raw: string | undefined): number | undefined {
+  if (!raw) return undefined
+  const n = parseInt(raw, 10)
+  if (!isFinite(n) || n < 0) return undefined
+  return n
+}
+
+/** Runtime-validates building_age against the allowed enum values. */
+function parseBuildingAge(raw: string | undefined): BuildingAgeRange | undefined {
+  if (!raw) return undefined
+  const allowed = BUILDING_AGE_RANGES.map((r) => r.value)
+  return (allowed as string[]).includes(raw) ? (raw as BuildingAgeRange) : undefined
+}
+
+/** Runtime-validates floor_range against the allowed enum values. */
+function parseFloorRange(raw: string | undefined): FloorRange | undefined {
+  if (!raw) return undefined
+  const allowed = FLOOR_RANGES.map((r) => r.value)
+  return (allowed as string[]).includes(raw) ? (raw as FloorRange) : undefined
+}
+
+/** Runtime-validates heating_type against the allowed enum values. */
+function parseHeatingType(raw: string | undefined): HeatingType | undefined {
+  if (!raw) return undefined
+  return (HEATING_TYPES as string[]).includes(raw) ? (raw as HeatingType) : undefined
+}
+
+/** Runtime-validates sort against the allowed enum values. */
+function parseSortOption(raw: string | undefined): SortOption | undefined {
+  if (!raw) return undefined
+  const allowed = SORT_OPTIONS.map((o) => o.value)
+  return (allowed as string[]).includes(raw) ? (raw as SortOption) : undefined
+}
+
+// ── Types ──────────────────────────────────────────────────
 
 interface SearchParams {
   listing_type?: string
@@ -38,6 +89,8 @@ interface ListingsPageProps {
   searchParams: SearchParams
 }
 
+// ── Metadata ───────────────────────────────────────────────
+
 export async function generateMetadata({ searchParams }: ListingsPageProps): Promise<Metadata> {
   const parts: string[] = []
   if (searchParams.listing_type) {
@@ -58,30 +111,33 @@ export async function generateMetadata({ searchParams }: ListingsPageProps): Pro
   }
 }
 
-export default async function ListingsPage({ searchParams }: ListingsPageProps) {
-  const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
+// ── Page ───────────────────────────────────────────────────
 
+export default async function ListingsPage({ searchParams }: ListingsPageProps) {
+  const page = Math.max(1, parsePositiveInt(searchParams.page) ?? 1)
+
+  // All params parsed through runtime-safe helpers — no unsafe `as` casts
   const filters = {
     listing_type:  searchParams.listing_type,
     property_type: searchParams.property_type,
     district:      searchParams.district,
-    min_price:     searchParams.min_price    ? parseFloat(searchParams.min_price)    : undefined,
-    max_price:     searchParams.max_price    ? parseFloat(searchParams.max_price)    : undefined,
-    rooms:         searchParams.rooms        ? parseInt(searchParams.rooms, 10)       : undefined,
-    min_area:      searchParams.min_area     ? parseFloat(searchParams.min_area)     : undefined,
-    max_area:      searchParams.max_area     ? parseFloat(searchParams.max_area)     : undefined,
-    building_age:  searchParams.building_age as BuildingAgeRange | undefined,
-    floor_range:   searchParams.floor_range  as FloorRange | undefined,
-    bathrooms:     searchParams.bathrooms    ? parseInt(searchParams.bathrooms, 10)  : undefined,
-    heating_type:  searchParams.heating_type as HeatingType | undefined,
+    min_price:     parsePositiveNumber(searchParams.min_price),
+    max_price:     parsePositiveNumber(searchParams.max_price),
+    rooms:         parsePositiveInt(searchParams.rooms),
+    min_area:      parsePositiveNumber(searchParams.min_area),
+    max_area:      parsePositiveNumber(searchParams.max_area),
+    building_age:  parseBuildingAge(searchParams.building_age),
+    floor_range:   parseFloorRange(searchParams.floor_range),
+    bathrooms:     parsePositiveInt(searchParams.bathrooms),
+    heating_type:  parseHeatingType(searchParams.heating_type),
     is_furnished:  searchParams.is_furnished  === 'true' ? true : undefined,
     has_balcony:   searchParams.has_balcony   === 'true' ? true : undefined,
     has_elevator:  searchParams.has_elevator  === 'true' ? true : undefined,
     has_parking:   searchParams.has_parking   === 'true' ? true : undefined,
     is_in_complex: searchParams.is_in_complex === 'true' ? true : undefined,
-    max_dues:      searchParams.max_dues     ? parseFloat(searchParams.max_dues)     : undefined,
-    max_deposit:   searchParams.max_deposit  ? parseFloat(searchParams.max_deposit)  : undefined,
-    sort:          (searchParams.sort as SortOption | undefined),
+    max_dues:      parsePositiveNumber(searchParams.max_dues),
+    max_deposit:   parsePositiveNumber(searchParams.max_deposit),
+    sort:          parseSortOption(searchParams.sort),
     page,
     per_page: 12,
   }

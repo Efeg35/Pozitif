@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Listing, ListingImage, Agent, OfficeSettings, HeatingType, BuildingAgeRange, FloorRange, SortOption } from '@/lib/types'
 
 // ── Shared joined type for public listing queries ──────────
@@ -48,40 +49,12 @@ export type PublicListingFilters = {
   per_page?: number
 }
 
-// ── getFeaturedListings ────────────────────────────────────
-export async function getFeaturedListings(): Promise<PublicListing[]> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('listings')
-    .select(`
-      *,
-      listing_images(id, url, storage_path, display_order, is_cover, listing_id, created_at),
-      agents(full_name, title, phone, avatar_url)
-    `)
-    .eq('status', 'aktif')
-    .eq('is_featured', true)
-    .order('created_at', { ascending: false })
-    .limit(6)
-
-  if (error) {
-    console.error('getFeaturedListings error:', error)
-    return []
-  }
-
-  return (data ?? []).map((listing) => ({
-    ...listing,
-    listing_images: (
-      listing.listing_images as PublicListing['listing_images']
-    ).filter((img) => img.is_cover),
-  })) as PublicListing[]
-}
-
-// ── getPublicListings ──────────────────────────────────────
-export async function getPublicListings(
-  filters: PublicListingFilters = {}
-): Promise<PublicListingsResult> {
-  const supabase = await createClient()
+// ── applyPublicListingFilters ──────────────────────────────
+// Single source of truth for filter logic — used by both
+// the data query and (implicitly) any future count-only query.
+// Returns the mutated query builder.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyPublicListingFilters(query: any, filters: PublicListingFilters): any {
   const {
     listing_type,
     property_type,
@@ -102,23 +75,7 @@ export async function getPublicListings(
     is_in_complex,
     max_dues,
     max_deposit,
-    sort = 'featured',
-    page = 1,
-    per_page = 12,
   } = filters
-
-  const from = (page - 1) * per_page
-  const to = from + per_page - 1
-
-  // Single query — returns both data and count in one round-trip
-  let query = supabase
-    .from('listings')
-    .select(`
-      *,
-      listing_images(id, url, storage_path, display_order, is_cover, listing_id, created_at),
-      agents(full_name, title, phone, avatar_url)
-    `, { count: 'exact' })
-    .eq('status', 'aktif')
 
   // Basic filters
   if (listing_type) query = query.eq('listing_type', listing_type)
@@ -179,28 +136,89 @@ export async function getPublicListings(
   if (max_dues != null) query = query.lte('dues', max_dues)
   if (max_deposit != null) query = query.lte('deposit', max_deposit)
 
-  // Sorting
+  return query
+}
+
+// ── applySorting ───────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applySorting(query: any, sort: SortOption = 'featured'): any {
   switch (sort) {
     case 'price_asc':
-      query = query.order('price', { ascending: true })
-      break
+      return query.order('price', { ascending: true })
     case 'price_desc':
-      query = query.order('price', { ascending: false })
-      break
+      return query.order('price', { ascending: false })
     case 'area_desc':
-      query = query.order('area_m2', { ascending: false })
-      break
+      return query.order('area_m2', { ascending: false })
     case 'newest':
-      query = query.order('created_at', { ascending: false })
-      break
+      return query.order('created_at', { ascending: false })
     case 'featured':
     default:
-      query = query
+      return query
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false })
-      break
+  }
+}
+
+// ── getFeaturedListings ────────────────────────────────────
+export async function getFeaturedListings(): Promise<PublicListing[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('listings')
+    .select(`
+      *,
+      listing_images(id, url, storage_path, display_order, is_cover, listing_id, created_at),
+      agents(full_name, title, phone, avatar_url)
+    `)
+    .eq('status', 'aktif')
+    .eq('is_featured', true)
+    .order('created_at', { ascending: false })
+    .limit(6)
+
+  if (error) {
+    console.error('getFeaturedListings error:', error)
+    return []
   }
 
+  return (data ?? []).map((listing) => ({
+    ...listing,
+    listing_images: (
+      listing.listing_images as PublicListing['listing_images']
+    ).filter((img) => img.is_cover),
+  })) as PublicListing[]
+}
+
+// ── getPublicListings ──────────────────────────────────────
+export async function getPublicListings(
+  filters: PublicListingFilters = {}
+): Promise<PublicListingsResult> {
+  const supabase = await createClient() as SupabaseClient
+  const {
+    sort = 'featured',
+    page = 1,
+    per_page = 12,
+  } = filters
+
+  const from = (page - 1) * per_page
+  const to = from + per_page - 1
+
+  // Build base query — same filters applied to both data+count in a single round-trip
+  let query = supabase
+    .from('listings')
+    .select(`
+      *,
+      listing_images(id, url, storage_path, display_order, is_cover, listing_id, created_at),
+      agents(full_name, title, phone, avatar_url)
+    `, { count: 'exact' })
+    .eq('status', 'aktif')
+
+  // Apply all filters via shared helper (guarantees count & data use identical predicates)
+  query = applyPublicListingFilters(query, filters)
+
+  // Apply sorting
+  query = applySorting(query, sort)
+
+  // Paginate
   const { data, count, error } = await query.range(from, to)
 
   if (error) {

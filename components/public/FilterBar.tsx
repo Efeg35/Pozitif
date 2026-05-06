@@ -155,6 +155,7 @@ export default function FilterBar({ currentFilters, availableDistricts, totalCou
 
   function handleApply() {
     const p = new URLSearchParams()
+    // NOTE: 'page' is intentionally NOT set here — applying new filters always resets to page 1.
     if (f.listing_type)  p.set('listing_type',  f.listing_type)
     if (f.property_type) p.set('property_type', f.property_type)
     if (f.district)      p.set('district',      f.district)

@@ -22,6 +22,8 @@ import {
   LISTING_STATUSES,
   CURRENCIES,
   IZMIR_DISTRICTS,
+  HEATING_TYPES,
+  HEATING_TYPE_LABELS,
 } from '@/lib/constants'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -338,11 +340,16 @@ export default function ListingForm({
 
         <div className="mb-4">
           <Label htmlFor="heating_type">Isıtma Tipi</Label>
-          <Input
+          <select
             id="heating_type"
             {...register('heating_type')}
-            placeholder="ör. Kombi, Doğalgaz, Merkezi"
-          />
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">— Seçiniz —</option>
+            {HEATING_TYPES.map((ht) => (
+              <option key={ht} value={ht}>{HEATING_TYPE_LABELS[ht]}</option>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
