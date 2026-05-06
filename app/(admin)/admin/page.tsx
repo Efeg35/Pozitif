@@ -18,6 +18,7 @@ export default async function DashboardPage() {
   let totalCustomers = 0
   let thisMonthAppointments = 0
   let newInquiries = 0
+  let draftListings = 0
 
   try {
     const results = await Promise.all([
@@ -29,17 +30,19 @@ export default async function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .gte('appointment_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
       supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'yeni'),
+      supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'taslak'),
     ])
 
     results.forEach(({ error }, i) => {
       if (error) console.error(`Dashboard count query [${i}] failed:`, error.message)
     })
 
-    totalListings        = results[0].count ?? 0
-    activeListings       = results[1].count ?? 0
-    totalCustomers       = results[2].count ?? 0
+    totalListings         = results[0].count ?? 0
+    activeListings        = results[1].count ?? 0
+    totalCustomers        = results[2].count ?? 0
     thisMonthAppointments = results[3].count ?? 0
-    newInquiries         = results[4].count ?? 0
+    newInquiries          = results[4].count ?? 0
+    draftListings         = results[5].count ?? 0
   } catch (err) {
     console.error('Dashboard count queries failed:', err)
   }
@@ -78,6 +81,22 @@ export default async function DashboardPage() {
           description="Bu aydaki randevular"
         />
       </div>
+
+      {/* Draft listings alert */}
+      {draftListings > 0 && (
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-800">
+            {draftListings} ilan taslak durumunda — yayınlamayı unutmayın
+          </p>
+          <Link
+            href="/admin/ilanlar?status=taslak"
+            className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors whitespace-nowrap"
+          >
+            Görüntüle
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Recent Inquiries Section */}
       <div className="bg-white border rounded-lg p-6">
