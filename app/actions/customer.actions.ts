@@ -19,6 +19,15 @@ type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string }
 
+// Paginated result shape for getCustomers
+export interface CustomerPage {
+  customers: CustomerWithRelations[]
+  total: number
+  page: number
+  per_page: number
+  total_pages: number
+}
+
 // ── Helper ────────────────────────────────────────────────────
 
 async function getAuthenticatedAgent() {
@@ -50,18 +59,18 @@ interface CustomerFilters {
 
 export async function getCustomers(
   filters?: CustomerFilters
-): Promise<ActionResult<CustomerWithRelations[]>> {
+): Promise<ActionResult<CustomerPage>> {
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
     const page = Math.max(1, filters?.page ?? 1)
-    const perPage = Math.min(200, filters?.per_page ?? 100)
+    const perPage = Math.min(200, filters?.per_page ?? 20)
     const from = (page - 1) * perPage
     const to = from + perPage - 1
 
     let query = supabase
       .from('customers')
-      .select('*, agents(full_name, title)')
+      .select('*, agents(full_name, title)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
 
@@ -69,7 +78,7 @@ export async function getCustomers(
       query = query.eq('agent_id', user.id)
     }
 
-    if (filters?.status) query = query.eq('status', filters.status)
+    if (filters?.status)        query = query.eq('status', filters.status)
     if (filters?.interest_type) query = query.eq('interest_type', filters.interest_type)
     if (filters?.search) {
       query = query.or(
@@ -77,10 +86,23 @@ export async function getCustomers(
       )
     }
 
-    const { data, error } = await query
+    const { data, error, count } = await query
 
     if (error) return { success: false, error: error.message }
-    return { success: true, data: (data ?? []) as unknown as CustomerWithRelations[] }
+
+    const total = count ?? 0
+    const total_pages = Math.max(1, Math.ceil(total / perPage))
+
+    return {
+      success: true,
+      data: {
+        customers: (data ?? []) as unknown as CustomerWithRelations[],
+        total,
+        page,
+        per_page: perPage,
+        total_pages,
+      },
+    }
   } catch (err) {
     return { success: false, error: String(err) }
   }

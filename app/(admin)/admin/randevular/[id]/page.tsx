@@ -20,16 +20,20 @@ interface Props {
 export default async function RandevuDetayPage({ params }: Props) {
   const { id } = await params
 
-  const [result, customersResult, listingsResult] = await Promise.all([
-    getAppointment(id),
-    getCustomers(),
-    getListingOptionsForAppointment(),
-  ])
-
+  // Get the appointment first so we can pass its listing_id to
+  // getListingOptionsForAppointment — ensuring a pasif/sold listing
+  // still appears in the edit dropdown.
+  const result = await getAppointment(id)
   if (!result.success) notFound()
 
   const appt = result.data
-  const customers = customersResult.success ? customersResult.data : []
+
+  const [customersResult, listingsResult] = await Promise.all([
+    getCustomers(),
+    getListingOptionsForAppointment(appt.listing_id ?? undefined),
+  ])
+
+  const customers = customersResult.success ? customersResult.data.customers : []
   const listings = listingsResult.success ? listingsResult.data : []
 
   async function handleUpdate(data: CreateAppointmentInput) {

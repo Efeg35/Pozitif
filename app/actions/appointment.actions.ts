@@ -107,13 +107,16 @@ export async function getAppointment(
 
 // ── Listing options for AppointmentForm ──────────────────────
 // Admin sees all active listings; agents only see their own.
+// In edit mode, pass currentListingId so the existing listing
+// appears in the dropdown even if its status is no longer 'aktif'.
 
-export async function getListingOptionsForAppointment(): Promise<
-  ActionResult<ListingOption[]>
-> {
+export async function getListingOptionsForAppointment(
+  currentListingId?: string
+): Promise<ActionResult<ListingOption[]>> {
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
+    // Base query — active listings only
     let query = supabase
       .from('listings')
       .select('id, title, district')
@@ -128,13 +131,31 @@ export async function getListingOptionsForAppointment(): Promise<
 
     if (error) return { success: false, error: error.message }
 
-    const listings: ListingOption[] = (data ?? []).map((l) => ({
+    const activeListings: ListingOption[] = (data ?? []).map((l) => ({
       id: l.id as string,
       title: l.title as string,
       district: (l.district as string | null) ?? null,
     }))
 
-    return { success: true, data: listings }
+    // If editing an appointment whose listing is no longer active,
+    // fetch it separately and prepend so it still shows in the select.
+    if (currentListingId && !activeListings.some((l) => l.id === currentListingId)) {
+      const { data: current } = await supabase
+        .from('listings')
+        .select('id, title, district')
+        .eq('id', currentListingId)
+        .single()
+
+      if (current) {
+        activeListings.unshift({
+          id: current.id as string,
+          title: `${current.title as string} (pasif)`,
+          district: (current.district as string | null) ?? null,
+        })
+      }
+    }
+
+    return { success: true, data: activeListings }
   } catch (err) {
     return { success: false, error: String(err) }
   }

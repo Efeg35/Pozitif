@@ -15,7 +15,7 @@ export default async function YeniRandevuPage({ searchParams }: Props) {
     getListingOptionsForAppointment(),
   ])
 
-  const customers = customersResult.success ? customersResult.data : []
+  const customers = customersResult.success ? customersResult.data.customers : []
   const listings = listingsResult.success ? listingsResult.data : []
 
   async function handleCreate(data: CreateAppointmentInput) {

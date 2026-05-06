@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getCustomers } from '@/app/actions/customer.actions'
 import {
   CUSTOMER_STATUS_LABELS,
@@ -14,22 +14,30 @@ interface PageProps {
     q?: string
     status?: string
     interest?: string
+    page?: string
   }>
 }
 
 export default async function MusterilerPage({ searchParams }: PageProps) {
-  const { q, status, interest } = await searchParams
+  const { q, status, interest, page: pageStr } = await searchParams
+  const page = Math.max(1, parseInt(pageStr ?? '1', 10) || 1)
 
   const result = await getCustomers({
-    search: q || undefined,
-    status: status || undefined,
+    search:        q || undefined,
+    status:        status || undefined,
     interest_type: interest || undefined,
+    page,
+    per_page:      20,
   })
-  const customers = result.success ? result.data : []
 
+  const { customers, total, total_pages } = result.success
+    ? result.data
+    : { customers: [], total: 0, total_pages: 1 }
+
+  // Build a URL preserving all active filters
   const buildUrl = (params: Record<string, string | undefined>) => {
     const sp = new URLSearchParams()
-    const merged = { q, status, interest, ...params }
+    const merged = { q, status, interest, page: undefined, ...params }
     Object.entries(merged).forEach(([k, v]) => {
       if (v) sp.set(k, v)
     })
@@ -37,12 +45,15 @@ export default async function MusterilerPage({ searchParams }: PageProps) {
     return `/admin/musteriler${qs ? `?${qs}` : ''}`
   }
 
+  const prevUrl = page > 1           ? buildUrl({ page: String(page - 1) }) : null
+  const nextUrl = page < total_pages ? buildUrl({ page: String(page + 1) }) : null
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Müşteriler</h1>
-          <p className="text-sm text-zinc-500 mt-1">{customers.length} müşteri</p>
+          <p className="text-sm text-zinc-500 mt-1">{total} müşteri</p>
         </div>
         <Link
           href="/admin/musteriler/yeni"
@@ -57,7 +68,7 @@ export default async function MusterilerPage({ searchParams }: PageProps) {
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <form method="GET" action="/admin/musteriler" className="flex-1">
-          {status && <input type="hidden" name="status" value={status} />}
+          {status   && <input type="hidden" name="status"   value={status} />}
           {interest && <input type="hidden" name="interest" value={interest} />}
           <input
             type="search"
@@ -151,55 +162,96 @@ export default async function MusterilerPage({ searchParams }: PageProps) {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 border-b">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">Ad Soyad</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">Telefon</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 hidden md:table-cell">E-posta</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 hidden lg:table-cell">İlgi</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600">Durum</th>
-                <th className="text-left px-4 py-3 font-medium text-zinc-600 hidden lg:table-cell">Danışman</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {customers.map((customer) => (
-                <tr key={customer.id} className="hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/musteriler/${customer.id}`}
-                      className="font-medium text-zinc-900 hover:text-blue-700"
-                    >
-                      {customer.full_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">{customer.phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-zinc-600 hidden md:table-cell">{customer.email ?? '—'}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    {customer.interest_type
-                      ? INTEREST_TYPE_LABELS[customer.interest_type as InterestType]
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        customer.status === 'aktif'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-zinc-100 text-zinc-600'
-                      }`}
-                    >
-                      {CUSTOMER_STATUS_LABELS[customer.status as CustomerStatus]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600 hidden lg:table-cell">
-                    {customer.agents?.full_name ?? '—'}
-                  </td>
+        <>
+          <div className="bg-white rounded-lg border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 border-b">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">Ad Soyad</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">Telefon</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600 hidden md:table-cell">E-posta</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600 hidden lg:table-cell">İlgi</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600">Durum</th>
+                  <th className="text-left px-4 py-3 font-medium text-zinc-600 hidden lg:table-cell">Danışman</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {customers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/musteriler/${customer.id}`}
+                        className="font-medium text-zinc-900 hover:text-blue-700"
+                      >
+                        {customer.full_name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600">{customer.phone ?? '—'}</td>
+                    <td className="px-4 py-3 text-zinc-600 hidden md:table-cell">{customer.email ?? '—'}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {customer.interest_type
+                        ? INTEREST_TYPE_LABELS[customer.interest_type as InterestType]
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          customer.status === 'aktif'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-zinc-100 text-zinc-600'
+                        }`}
+                      >
+                        {CUSTOMER_STATUS_LABELS[customer.status as CustomerStatus]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600 hidden lg:table-cell">
+                      {customer.agents?.full_name ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {total_pages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-sm text-zinc-500">
+                Sayfa {page} / {total_pages} &middot; toplam {total} kayıt
+              </p>
+              <div className="flex gap-2">
+                {prevUrl ? (
+                  <Link
+                    href={prevUrl}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Önceki
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm font-medium text-zinc-300 cursor-not-allowed">
+                    <ChevronLeft className="h-4 w-4" />
+                    Önceki
+                  </span>
+                )}
+                {nextUrl ? (
+                  <Link
+                    href={nextUrl}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                  >
+                    Sonraki
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border text-sm font-medium text-zinc-300 cursor-not-allowed">
+                    Sonraki
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
