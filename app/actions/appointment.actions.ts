@@ -12,6 +12,12 @@ import {
 } from '@/lib/schemas/appointment.schema'
 import type { Appointment, AppointmentWithRelations } from '@/lib/types'
 
+export interface ListingOption {
+  id: string
+  title: string
+  district: string | null
+}
+
 // ── Shared types ──────────────────────────────────────────────
 
 type ActionResult<T> =
@@ -94,6 +100,41 @@ export async function getAppointment(
 
     if (error || !data) return { success: false, error: 'Randevu bulunamadı' }
     return { success: true, data: data as unknown as AppointmentWithRelations }
+  } catch (err) {
+    return { success: false, error: String(err) }
+  }
+}
+
+// ── Listing options for AppointmentForm ──────────────────────
+// Admin sees all active listings; agents only see their own.
+
+export async function getListingOptionsForAppointment(): Promise<
+  ActionResult<ListingOption[]>
+> {
+  try {
+    const { supabase, user, isAdmin } = await getAuthenticatedAgent()
+
+    let query = supabase
+      .from('listings')
+      .select('id, title, district')
+      .eq('status', 'aktif')
+      .order('title', { ascending: true })
+
+    if (!isAdmin) {
+      query = query.eq('agent_id', user.id)
+    }
+
+    const { data, error } = await query
+
+    if (error) return { success: false, error: error.message }
+
+    const listings: ListingOption[] = (data ?? []).map((l) => ({
+      id: l.id as string,
+      title: l.title as string,
+      district: (l.district as string | null) ?? null,
+    }))
+
+    return { success: true, data: listings }
   } catch (err) {
     return { success: false, error: String(err) }
   }

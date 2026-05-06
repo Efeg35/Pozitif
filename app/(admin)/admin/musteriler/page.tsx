@@ -23,13 +23,9 @@ export default async function MusterilerPage({ searchParams }: PageProps) {
   const result = await getCustomers({
     search: q || undefined,
     status: status || undefined,
+    interest_type: interest || undefined,
   })
-  const allCustomers = result.success ? result.data : []
-
-  // interest_type filter is client-free — filter in JS since getCustomers doesn't have it yet
-  const customers = interest
-    ? allCustomers.filter((c) => c.interest_type === interest)
-    : allCustomers
+  const customers = result.success ? result.data : []
 
   const buildUrl = (params: Record<string, string | undefined>) => {
     const sp = new URLSearchParams()

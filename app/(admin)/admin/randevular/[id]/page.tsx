@@ -1,13 +1,15 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { getAppointment, updateAppointment } from '@/app/actions/appointment.actions'
+import {
+  getAppointment,
+  updateAppointment,
+  getListingOptionsForAppointment,
+} from '@/app/actions/appointment.actions'
 import { getCustomers } from '@/app/actions/customer.actions'
-import { createClient } from '@/lib/supabase/server'
 import AppointmentForm from '@/components/admin/AppointmentForm'
 import DeleteAppointmentButton from '@/components/admin/DeleteAppointmentButton'
 import type { CreateAppointmentInput } from '@/lib/schemas/appointment.schema'
-import type { ListingOption } from '@/components/admin/AppointmentForm'
 import { APPOINTMENT_STATUS_LABELS } from '@/lib/constants'
 import type { AppointmentStatus } from '@/lib/types'
 
@@ -18,26 +20,17 @@ interface Props {
 export default async function RandevuDetayPage({ params }: Props) {
   const { id } = await params
 
-  const supabase = await createClient()
-  const [result, customersResult, { data: listingsData }] = await Promise.all([
+  const [result, customersResult, listingsResult] = await Promise.all([
     getAppointment(id),
     getCustomers(),
-    supabase
-      .from('listings')
-      .select('id, title, district')
-      .eq('status', 'yayinda')
-      .order('title', { ascending: true }),
+    getListingOptionsForAppointment(),
   ])
 
   if (!result.success) notFound()
 
   const appt = result.data
   const customers = customersResult.success ? customersResult.data : []
-  const listings: ListingOption[] = (listingsData ?? []).map((l) => ({
-    id: l.id as string,
-    title: l.title as string,
-    district: (l.district as string | null) ?? null,
-  }))
+  const listings = listingsResult.success ? listingsResult.data : []
 
   async function handleUpdate(data: CreateAppointmentInput) {
     'use server'
@@ -48,7 +41,10 @@ export default async function RandevuDetayPage({ params }: Props) {
     <div className="space-y-8 max-w-2xl">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/admin/randevular" className="text-zinc-400 hover:text-zinc-700 transition-colors">
+          <Link
+            href="/admin/randevular"
+            className="text-zinc-400 hover:text-zinc-700 transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>

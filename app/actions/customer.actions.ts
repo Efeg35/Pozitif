@@ -42,7 +42,10 @@ async function getAuthenticatedAgent() {
 
 interface CustomerFilters {
   status?: string
+  interest_type?: string
   search?: string
+  page?: number
+  per_page?: number
 }
 
 export async function getCustomers(
@@ -51,16 +54,23 @@ export async function getCustomers(
   try {
     const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
+    const page = Math.max(1, filters?.page ?? 1)
+    const perPage = Math.min(200, filters?.per_page ?? 100)
+    const from = (page - 1) * perPage
+    const to = from + perPage - 1
+
     let query = supabase
       .from('customers')
       .select('*, agents(full_name, title)')
       .order('created_at', { ascending: false })
+      .range(from, to)
 
     if (!isAdmin) {
       query = query.eq('agent_id', user.id)
     }
 
     if (filters?.status) query = query.eq('status', filters.status)
+    if (filters?.interest_type) query = query.eq('interest_type', filters.interest_type)
     if (filters?.search) {
       query = query.or(
         `full_name.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,email.ilike.%${filters.search}%`

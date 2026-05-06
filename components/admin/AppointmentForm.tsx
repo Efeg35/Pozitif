@@ -9,6 +9,9 @@ import {
   APPOINTMENT_STATUS_LABELS,
 } from '@/lib/constants'
 import type { AppointmentWithRelations, CustomerWithRelations } from '@/lib/types'
+import type { ListingOption } from '@/app/actions/appointment.actions'
+
+export type { ListingOption }
 
 // ── Form values type — all strings ───────────────────────────
 type AppointmentFormValues = {
@@ -18,12 +21,6 @@ type AppointmentFormValues = {
   duration_minutes: string
   status:           string
   notes:            string
-}
-
-export interface ListingOption {
-  id: string
-  title: string
-  district: string | null
 }
 
 interface AppointmentFormProps {
