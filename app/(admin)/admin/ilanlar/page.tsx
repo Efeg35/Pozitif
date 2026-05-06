@@ -8,13 +8,11 @@ import {
   STATUS_LABELS,
   LISTING_TYPE_LABELS,
   PROPERTY_TYPE_LABELS,
-  LISTING_STATUSES,
-  LISTING_TYPES,
-  IZMIR_DISTRICTS,
 } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Plus, Pencil, Home } from 'lucide-react'
 import DeleteListingButton from './DeleteListingButton'
+import FilterBar from './FilterBar'
 import type { ListingStatus } from '@/lib/types'
 
 // ── Status badge colours ───────────────────────────────────────
@@ -66,14 +64,6 @@ export default async function IlanlarPage({ searchParams }: PageProps) {
     ? (listingsResult.data as unknown as ListingRow[])
     : []
 
-  // Build filter URL helper
-  function filterUrl(key: string, value: string) {
-    const p = new URLSearchParams(searchParams as Record<string, string>)
-    if (value) p.set(key, value); else p.delete(key)
-    const s = p.toString()
-    return `/admin/ilanlar${s ? `?${s}` : ''}`
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -91,64 +81,11 @@ export default async function IlanlarPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-white border rounded-lg p-4">
-        {/* Status filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-500">Durum:</span>
-          <Link
-            href={filterUrl('status', '')}
-            className={`text-xs px-2 py-1 rounded-full transition-colors ${!searchParams.status ? 'bg-blue-700 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
-          >
-            Tümü
-          </Link>
-          {LISTING_STATUSES.map((s) => (
-            <Link
-              key={s}
-              href={filterUrl('status', s)}
-              className={`text-xs px-2 py-1 rounded-full transition-colors ${searchParams.status === s ? 'bg-blue-700 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
-            >
-              {STATUS_LABELS[s]}
-            </Link>
-          ))}
-        </div>
-
-        {/* Type filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-500">Tür:</span>
-          <Link
-            href={filterUrl('listing_type', '')}
-            className={`text-xs px-2 py-1 rounded-full transition-colors ${!searchParams.listing_type ? 'bg-blue-700 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
-          >
-            Tümü
-          </Link>
-          {LISTING_TYPES.map((t) => (
-            <Link
-              key={t}
-              href={filterUrl('listing_type', t)}
-              className={`text-xs px-2 py-1 rounded-full transition-colors ${searchParams.listing_type === t ? 'bg-blue-700 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
-            >
-              {LISTING_TYPE_LABELS[t]}
-            </Link>
-          ))}
-        </div>
-
-        {/* District filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-500">İlçe:</span>
-          <select
-            defaultValue={searchParams.district ?? ''}
-            onChange={(e) => {
-              window.location.href = filterUrl('district', e.target.value)
-            }}
-            className="text-xs rounded-md border border-input px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">Tüm İlçeler</option>
-            {IZMIR_DISTRICTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <FilterBar
+        currentStatus={searchParams.status}
+        currentType={searchParams.listing_type}
+        currentDistrict={searchParams.district}
+      />
 
       {/* Table */}
       {rows.length === 0 ? (

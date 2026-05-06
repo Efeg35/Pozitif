@@ -71,7 +71,11 @@ export default function ImageUploader({
     setUploading(true)
     let current = images
     for (const file of files) {
-      const result = await uploadListingImage(listingId, file)
+      // File nesnesi server action sınırını geçemez — FormData ile wrap et
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('listingId', listingId)
+      const result = await uploadListingImage(formData)
       if (!result.success) {
         setError(result.error)
         break

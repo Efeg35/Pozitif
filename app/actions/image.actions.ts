@@ -59,11 +59,22 @@ function sanitizeFilename(name: string): string {
 
 // ── Actions ───────────────────────────────────────────────────
 
+/**
+ * Upload a listing image.
+ * Accepts FormData to avoid serialization issues with File objects across server action boundaries.
+ * FormData fields: "file" (File), "listingId" (string)
+ */
 export async function uploadListingImage(
-  listingId: string,
-  file: File
+  formData: FormData
 ): Promise<ActionResult<ListingImage>> {
   try {
+    const file = formData.get('file') as File | null
+    const listingId = formData.get('listingId') as string | null
+
+    if (!file || !listingId) {
+      return { success: false, error: 'Eksik parametre: file veya listingId' }
+    }
+
     const { supabase, user, isAdmin } = await getAuthenticatedAgent()
 
     // Server-side validation
@@ -238,6 +249,7 @@ export async function reorderImages(
     if (!owns) return { success: false, error: 'Bu ilanın görsellerini düzenleme yetkiniz yok' }
 
     // Update display_order for each image in parallel
+    // MVP: N parallel requests. Known limitation — can be improved with a bulk upsert or RPC later.
     await Promise.all(
       imageIds.map((id, index) =>
         supabase

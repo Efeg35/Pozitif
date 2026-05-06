@@ -35,7 +35,7 @@ async function getAuthenticatedAgent() {
   return { supabase, user, isAdmin: agent?.is_admin ?? false }
 }
 
-/** Ensures a slug is unique in the listings table. Appends -2, -3, ... if needed. */
+/** Ensures a slug is unique in the listings table. Appends -2, -3, ... if needed. Max 50 attempts. */
 async function ensureUniqueSlug(
   supabase: Awaited<ReturnType<typeof createClient>>,
   baseSlug: string,
@@ -44,7 +44,7 @@ async function ensureUniqueSlug(
   let slug = baseSlug
   let counter = 2
 
-  while (true) {
+  while (counter <= 50) {
     let query = supabase.from('listings').select('id').eq('slug', slug)
     if (excludeId) query = query.neq('id', excludeId)
     const { data } = await query.maybeSingle()
@@ -52,6 +52,9 @@ async function ensureUniqueSlug(
     slug = `${baseSlug}-${counter}`
     counter++
   }
+
+  // Fallback: append timestamp to guarantee uniqueness
+  return `${baseSlug}-${Date.now()}`
 }
 
 // ── Queries ───────────────────────────────────────────────────
