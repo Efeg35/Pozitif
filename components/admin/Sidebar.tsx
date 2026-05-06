@@ -29,9 +29,10 @@ const navItems = [
 interface SidebarProps {
   agent: Pick<Agent, 'full_name' | 'title' | 'avatar_url'> | null
   is_admin: boolean
+  unreadInquiryCount?: number
 }
 
-export default function Sidebar({ agent, is_admin }: SidebarProps) {
+export default function Sidebar({ agent, is_admin, unreadInquiryCount = 0 }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -63,7 +64,12 @@ export default function Sidebar({ agent, is_admin }: SidebarProps) {
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            {label}
+            <span className="flex-1">{label}</span>
+            {href === '/admin/talepler' && unreadInquiryCount > 0 && (
+              <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-xs font-bold leading-none">
+                {unreadInquiryCount > 99 ? '99+' : unreadInquiryCount}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

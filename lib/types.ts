@@ -148,7 +148,16 @@ export type ListingWithImagesAndAgent = Listing & {
 }
 
 export type AppointmentWithRelations = Appointment & {
-  customers: Pick<Customer, 'full_name' | 'phone'> | null
-  listings: Pick<Listing, 'title' | 'slug'> | null
-  agents: Pick<Agent, 'full_name'> | null
+  customers: Pick<Customer, 'id' | 'full_name' | 'phone' | 'email'> | null
+  listings: Pick<Listing, 'id' | 'title' | 'slug' | 'district' | 'city'> | null
+  agents: Pick<Agent, 'id' | 'full_name'> | null
+}
+
+export type CustomerWithRelations = Customer & {
+  agents: Pick<Agent, 'full_name' | 'title'> | null
+  appointments?: AppointmentWithRelations[]
+}
+
+export type InquiryWithListing = Inquiry & {
+  listings: Pick<Listing, 'id' | 'title' | 'slug' | 'district' | 'city' | 'agent_id'> | null
 }

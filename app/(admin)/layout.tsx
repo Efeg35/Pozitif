@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/admin/Sidebar'
+import { getUnreadInquiryCount } from '@/app/actions/crm.actions'
 
 export default async function AdminLayout({
   children,
@@ -27,9 +28,15 @@ export default async function AdminLayout({
     redirect('/login')
   }
 
+  const unreadInquiryCount = await getUnreadInquiryCount()
+
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      <Sidebar agent={agent} is_admin={agent.is_admin ?? false} />
+      <Sidebar
+        agent={agent}
+        is_admin={agent.is_admin ?? false}
+        unreadInquiryCount={unreadInquiryCount}
+      />
       <main className="flex-1 min-w-0 p-6 md:p-8">{children}</main>
     </div>
   )
