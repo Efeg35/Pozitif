@@ -1,9 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { Listing, ListingImage, Agent, OfficeSettings } from '@/lib/types'
+import type { Listing, ListingImage, Agent, OfficeSettings, HeatingType, BuildingAgeRange, FloorRange, SortOption } from '@/lib/types'
 
-// ── Shared joined type for public listing queries ──────────────
+// ── Shared joined type for public listing queries ──────────
 export type PublicListing = Listing & {
   listing_images: Pick<
     ListingImage,
@@ -21,18 +21,34 @@ export type PublicListingsResult = {
 }
 
 export type PublicListingFilters = {
+  // Basic filters
   listing_type?: string
   property_type?: string
   district?: string
   min_price?: number
   max_price?: number
   rooms?: number
+  // Advanced filters
+  min_area?: number
+  max_area?: number
+  building_age?: BuildingAgeRange
+  floor_range?: FloorRange
+  bathrooms?: number
+  heating_type?: HeatingType
+  is_furnished?: boolean
+  has_balcony?: boolean
+  has_elevator?: boolean
+  has_parking?: boolean
+  is_in_complex?: boolean
+  max_dues?: number
+  max_deposit?: number
+  // Sorting & pagination
+  sort?: SortOption
   page?: number
   per_page?: number
 }
 
-// ── getFeaturedListings ────────────────────────────────────────
-// Returns up to 6 featured active listings with cover image + agent name.
+// ── getFeaturedListings ────────────────────────────────────
 export async function getFeaturedListings(): Promise<PublicListing[]> {
   const supabase = await createClient()
 
@@ -61,8 +77,7 @@ export async function getFeaturedListings(): Promise<PublicListing[]> {
   })) as PublicListing[]
 }
 
-// ── getPublicListings ──────────────────────────────────────────
-// Returns paginated active listings with optional filters.
+// ── getPublicListings ──────────────────────────────────────
 export async function getPublicListings(
   filters: PublicListingFilters = {}
 ): Promise<PublicListingsResult> {
@@ -74,6 +89,20 @@ export async function getPublicListings(
     min_price,
     max_price,
     rooms,
+    min_area,
+    max_area,
+    building_age,
+    floor_range,
+    bathrooms,
+    heating_type,
+    is_furnished,
+    has_balcony,
+    has_elevator,
+    has_parking,
+    is_in_complex,
+    max_dues,
+    max_deposit,
+    sort = 'featured',
     page = 1,
     per_page = 12,
   } = filters
@@ -91,6 +120,7 @@ export async function getPublicListings(
     `, { count: 'exact' })
     .eq('status', 'aktif')
 
+  // Basic filters
   if (listing_type) query = query.eq('listing_type', listing_type)
   if (property_type) query = query.eq('property_type', property_type)
   if (district) query = query.eq('district', district)
@@ -104,10 +134,74 @@ export async function getPublicListings(
     }
   }
 
-  const { data, count, error } = await query
-    .order('is_featured', { ascending: false })
-    .order('created_at', { ascending: false })
-    .range(from, to)
+  // Area filter
+  if (min_area != null) query = query.gte('area_m2', min_area)
+  if (max_area != null) query = query.lte('area_m2', max_area)
+
+  // Building age range
+  if (building_age != null) {
+    if (building_age === '0') {
+      query = query.eq('building_age', 0)
+    } else if (building_age === '26+') {
+      query = query.gte('building_age', 26)
+    } else {
+      const [minAge, maxAge] = building_age.split('-').map(Number)
+      query = query.gte('building_age', minAge).lte('building_age', maxAge)
+    }
+  }
+
+  // Floor range
+  if (floor_range != null) {
+    if (floor_range === '0') {
+      query = query.eq('floor', 0)
+    } else if (floor_range === '8+') {
+      query = query.gte('floor', 8)
+    } else {
+      const [minFloor, maxFloor] = floor_range.split('-').map(Number)
+      query = query.gte('floor', minFloor).lte('floor', maxFloor)
+    }
+  }
+
+  // Bathrooms (minimum)
+  if (bathrooms != null) query = query.gte('bathrooms', bathrooms)
+
+  // Heating type
+  if (heating_type) query = query.eq('heating_type', heating_type)
+
+  // Boolean feature filters (only filter when true)
+  if (is_furnished === true) query = query.eq('is_furnished', true)
+  if (has_balcony === true) query = query.eq('has_balcony', true)
+  if (has_elevator === true) query = query.eq('has_elevator', true)
+  if (has_parking === true) query = query.eq('has_parking', true)
+  if (is_in_complex === true) query = query.eq('is_in_complex', true)
+
+  // Dues & deposit maximums
+  if (max_dues != null) query = query.lte('dues', max_dues)
+  if (max_deposit != null) query = query.lte('deposit', max_deposit)
+
+  // Sorting
+  switch (sort) {
+    case 'price_asc':
+      query = query.order('price', { ascending: true })
+      break
+    case 'price_desc':
+      query = query.order('price', { ascending: false })
+      break
+    case 'area_desc':
+      query = query.order('area_m2', { ascending: false })
+      break
+    case 'newest':
+      query = query.order('created_at', { ascending: false })
+      break
+    case 'featured':
+    default:
+      query = query
+        .order('is_featured', { ascending: false })
+        .order('created_at', { ascending: false })
+      break
+  }
+
+  const { data, count, error } = await query.range(from, to)
 
   if (error) {
     console.error('getPublicListings error:', error)
@@ -127,8 +221,7 @@ export async function getPublicListings(
   return { listings, total, page, per_page, total_pages }
 }
 
-// ── getPublicListing ───────────────────────────────────────────
-// Returns a single active listing with all images and full agent info.
+// ── getPublicListing ───────────────────────────────────────
 export async function getPublicListing(id: string): Promise<PublicListing | null> {
   const supabase = await createClient()
 
@@ -150,7 +243,6 @@ export async function getPublicListing(id: string): Promise<PublicListing | null
 
   if (!data) return null
 
-  // Sort images by display_order
   return {
     ...data,
     listing_images: (data.listing_images as PublicListing['listing_images']).sort(
@@ -159,8 +251,7 @@ export async function getPublicListing(id: string): Promise<PublicListing | null
   } as PublicListing
 }
 
-// ── getRelatedListings ─────────────────────────────────────────
-// Returns up to 3 active listings in the same district + type (excluding current).
+// ── getRelatedListings ─────────────────────────────────────
 export async function getRelatedListings(
   listingId: string,
   district: string,
@@ -195,8 +286,7 @@ export async function getRelatedListings(
   })) as PublicListing[]
 }
 
-// ── getDistrictsWithListings ───────────────────────────────────
-// Returns unique districts that have at least one active listing.
+// ── getDistrictsWithListings ───────────────────────────────
 export async function getDistrictsWithListings(): Promise<string[]> {
   const supabase = await createClient()
 
@@ -222,8 +312,7 @@ export async function getDistrictsWithListings(): Promise<string[]> {
   return unique
 }
 
-// ── getOfficeSettings ──────────────────────────────────────────
-// Returns the first (and only) office_settings row, or null if none.
+// ── getOfficeSettings ──────────────────────────────────────
 export async function getOfficeSettings(): Promise<OfficeSettings | null> {
   const supabase = await createClient()
 

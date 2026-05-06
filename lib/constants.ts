@@ -7,6 +7,10 @@ import type {
   InquiryStatus,
   InterestType,
   CustomerStatus,
+  HeatingType,
+  BuildingAgeRange,
+  FloorRange,
+  SortOption,
 } from './types'
 
 // ── Enum value arrays ────────────────────────────────────────
@@ -78,6 +82,49 @@ export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
   pasif: 'Pasif',
 }
 
+// ── Heating types ────────────────────────────────────────────
+export const HEATING_TYPES: HeatingType[] = [
+  'dogalgaz', 'kombi', 'merkezi', 'klima', 'soba', 'yerden', 'yok',
+]
+
+export const HEATING_TYPE_LABELS: Record<HeatingType, string> = {
+  dogalgaz: 'Doğalgaz',
+  kombi:    'Kombi',
+  merkezi:  'Merkezi',
+  klima:    'Klima',
+  soba:     'Soba',
+  yerden:   'Yerden Isıtma',
+  yok:      'Yok',
+}
+
+// ── Building age ranges ──────────────────────────────────────
+export const BUILDING_AGE_RANGES: { label: string; value: BuildingAgeRange }[] = [
+  { label: 'Sıfır (0)',    value: '0'     },
+  { label: '1 – 5 yıl',   value: '1-5'   },
+  { label: '6 – 10 yıl',  value: '6-10'  },
+  { label: '11 – 15 yıl', value: '11-15' },
+  { label: '16 – 20 yıl', value: '16-20' },
+  { label: '21 – 25 yıl', value: '21-25' },
+  { label: '26+ yıl',     value: '26+'   },
+]
+
+// ── Floor ranges ─────────────────────────────────────────────
+export const FLOOR_RANGES: { label: string; value: FloorRange }[] = [
+  { label: 'Zemin (0)',  value: '0'   },
+  { label: '1 – 3. kat', value: '1-3' },
+  { label: '4 – 7. kat', value: '4-7' },
+  { label: '8+. kat',    value: '8+'  },
+]
+
+// ── Sort options ─────────────────────────────────────────────
+export const SORT_OPTIONS: { label: string; value: SortOption }[] = [
+  { label: 'En Yeni',        value: 'newest'     },
+  { label: 'Fiyat (Düşük→)', value: 'price_asc'  },
+  { label: 'Fiyat (Yüksek→)', value: 'price_desc' },
+  { label: 'En Büyük m²',   value: 'area_desc'  },
+  { label: 'Öne Çıkanlar',  value: 'featured'   },
+]
+
 // ── İzmir districts ──────────────────────────────────────────
 export const IZMIR_DISTRICTS = [
   'Aliağa', 'Balçova', 'Bayındır', 'Bayraklı', 'Bergama',
@@ -89,7 +136,6 @@ export const IZMIR_DISTRICTS = [
 ] as const
 
 // Coastal/resort areas shown as quick-filters on public site.
-// Note: Alaçatı is a sub-district of Çeşme but listed separately for UX.
 export const IZMIR_COASTAL_DISTRICTS = [
   'Çeşme',
   'Alaçatı',

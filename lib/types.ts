@@ -12,6 +12,12 @@ export type InquiryStatus     = 'yeni' | 'incelendi' | 'yanitlandi'
 export type InterestType      = 'satilik' | 'kiralik' | 'her_ikisi'
 export type CustomerStatus    = 'aktif' | 'pasif'
 
+// ── Filter / sort union types (public listing search) ────────
+export type HeatingType      = 'dogalgaz' | 'kombi' | 'merkezi' | 'klima' | 'soba' | 'yerden' | 'yok'
+export type BuildingAgeRange = '0' | '1-5' | '6-10' | '11-15' | '16-20' | '21-25' | '26+'
+export type FloorRange       = '0' | '1-3' | '4-7' | '8+'
+export type SortOption       = 'newest' | 'price_asc' | 'price_desc' | 'area_desc' | 'featured'
+
 // ── Table row types ──────────────────────────────────────────
 
 export type Agent = {
