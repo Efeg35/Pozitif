@@ -1,11 +1,13 @@
 import { getInquiries } from '@/app/actions/crm.actions'
 import { INQUIRY_STATUS_LABELS } from '@/lib/constants'
-import type { InquiryStatus } from '@/lib/types'
+import type { InquiryStatus, InquiryWithListing } from '@/lib/types'
 import InquiryInbox from './InquiryInbox'
 
 export default async function TaleplerPage() {
   const result = await getInquiries()
-  const inquiries = result.success ? result.data : []
+
+  const inquiries: InquiryWithListing[] = result.success ? result.data : []
+  const fetchError: string | null = result.success ? null : result.error
 
   return (
     <div className="space-y-6">
@@ -16,9 +18,9 @@ export default async function TaleplerPage() {
         </p>
       </div>
 
-      {!result.success && (
+      {fetchError && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {result.error}
+          {fetchError}
         </div>
       )}
 
