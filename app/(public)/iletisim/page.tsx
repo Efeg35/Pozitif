@@ -8,8 +8,9 @@ import { buildWhatsappUrl } from '@/lib/whatsapp'
 import { getSiteUrl } from '@/lib/env'
 
 export const metadata: Metadata = {
-  title: 'İletişim | Pozitif Gayrimenkul',
-  description: 'Pozitif Gayrimenkul ile iletişime geçin. Telefon, e-posta veya formu doldurun.',
+  title: 'İletişim | Pozitif Gayrimenkul İzmir Emlak Ofisi',
+  description:
+    'Pozitif Gayrimenkul İzmir emlak ofisi ile iletişime geçin. İzmir satılık daire, kiralık daire ve gayrimenkul danışmanlığı için bizi arayın.',
 }
 
 export default async function ContactPage() {

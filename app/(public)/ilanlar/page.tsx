@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+
 import { getPublicListings, getDistrictsWithListings } from '@/app/actions/public.actions'
 import FilterBar from '@/components/public/FilterBar'
 import ListingGrid from '@/components/public/ListingGrid'
@@ -103,11 +104,25 @@ export async function generateMetadata({ searchParams }: ListingsPageProps): Pro
   }
   if (searchParams.district) parts.push(searchParams.district)
 
+  const isFiltered = parts.length > 0
+
   return {
-    title:
-      parts.length > 0
+    title: isFiltered
+      ? `${parts.join(' ')} İlanları | Pozitif Gayrimenkul`
+      : 'İzmir Satılık ve Kiralık Daire İlanları | Pozitif Gayrimenkul',
+    description: isFiltered
+      ? `${parts.join(' ')} ilanları. Pozitif Gayrimenkul İzmir portföyünden güncel emlak ilanlarını inceleyin.`
+      : 'Konak satılık daire, Karabağlar satılık daire, İzmir kiralık daire ve villa ilanları. Pozitif Gayrimenkul İzmir portföyünü filtrele ve doğru mülkü bul.',
+    openGraph: {
+      title: isFiltered
         ? `${parts.join(' ')} İlanları | Pozitif Gayrimenkul`
-        : 'İlanlar | Pozitif Gayrimenkul',
+        : 'İzmir Satılık ve Kiralık Daire İlanları | Pozitif Gayrimenkul',
+      description: isFiltered
+        ? `${parts.join(' ')} ilanları — Pozitif Gayrimenkul İzmir.`
+        : 'Konak, Karabağlar ve tüm İzmir ilçelerinde güncel emlak ilanları.',
+      type: 'website',
+      locale: 'tr_TR',
+    },
   }
 }
 

@@ -13,13 +13,13 @@ import StructuredData, { buildOrganizationJsonLd } from '@/components/public/Str
 import { getSiteUrl } from '@/lib/env'
 
 export const metadata: Metadata = {
-  title: 'Pozitif Gayrimenkul | İzmir Gayrimenkul',
+  title: 'Pozitif Gayrimenkul İzmir | Satılık ve Kiralık Daire İlanları',
   description:
-    "İzmir'de satılık ve kiralık daire, villa, arsa ilanları. Karşıyaka, Çeşme, Urla, Bornova ve tüm İzmir ilçelerinde güvenilir emlak danışmanlığı.",
+    "İzmir emlak ofisi olarak Konak, Karabağlar, Karşıyaka, Çeşme ve tüm İzmir ilçelerinde satılık daire, kiralık daire ve villa ilanları. Güvenilir gayrimenkul danışmanlığı.",
   openGraph: {
-    title: 'Pozitif Gayrimenkul | İzmir Gayrimenkul',
+    title: 'Pozitif Gayrimenkul İzmir | Satılık ve Kiralık Daire',
     description:
-      "İzmir'de satılık ve kiralık daire, villa, arsa ilanları. Güvenilir emlak danışmanlığı.",
+      "İzmir'de satılık ve kiralık daire ilanları. Konak, Karabağlar, Karşıyaka ve daha fazlası.",
     type: 'website',
     locale: 'tr_TR',
   },
