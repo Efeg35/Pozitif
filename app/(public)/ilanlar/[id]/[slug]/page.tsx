@@ -62,16 +62,15 @@ export default async function ListingDetailPage({ params }: { params: Params }) 
   const showStatusBadge = listing.status === 'satildi' || listing.status === 'kiralandi'
 
   const waPhone = settings?.whatsapp ?? settings?.phone
-  const waLink = waPhone
-    ? buildWhatsappUrl(
-        waPhone,
-        buildListingWhatsappMessage({
-          listingTitle: listing.title,
-          listingId: listing.id,
-          siteUrl,
-        })
-      )
-    : null
+  const waLink = buildWhatsappUrl(
+    waPhone,
+    buildListingWhatsappMessage({
+      listingTitle: listing.title,
+      listingId: listing.id,
+      listingSlug: listing.slug ?? listing.id,
+      siteUrl,
+    })
+  )
 
   const coverImage = listing.listing_images.find((img) => img.is_cover) ?? listing.listing_images[0]
   const listingJsonLd = buildListingJsonLd({

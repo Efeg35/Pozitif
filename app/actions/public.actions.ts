@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Listing, ListingImage, Agent, OfficeSettings, HeatingType, BuildingAgeRange, FloorRange, SortOption } from '@/lib/types'
+import type { Listing, ListingImage, Agent, HeatingType, BuildingAgeRange, FloorRange, SortOption } from '@/lib/types'
 
 // ── Shared joined type for public listing queries ──────────
 export type PublicListing = Listing & {
@@ -328,22 +328,4 @@ export async function getDistrictsWithListings(): Promise<string[]> {
   ).sort() as string[]
 
   return unique
-}
-
-// ── getOfficeSettings ──────────────────────────────────────
-export async function getOfficeSettings(): Promise<OfficeSettings | null> {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('office_settings')
-    .select('*')
-    .limit(1)
-    .maybeSingle()
-
-  if (error) {
-    console.error('getOfficeSettings error:', error)
-    return null
-  }
-
-  return data as OfficeSettings | null
 }

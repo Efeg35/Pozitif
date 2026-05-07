@@ -3,9 +3,15 @@
 // Renders a <script type="application/ld+json"> tag in the <head> or inline.
 // Usage: <StructuredData data={jsonLdObject} />
 
+// Recursive JSON-LD value type — no `any`
+type JsonLdPrimitive = string | number | boolean | null
+type JsonLdValue = JsonLdPrimitive | JsonLdObject | JsonLdValue[]
+interface JsonLdObject {
+  [key: string]: JsonLdValue
+}
+
 interface StructuredDataProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: Record<string, any>
+  data: JsonLdObject
 }
 
 export default function StructuredData({ data }: StructuredDataProps) {
@@ -31,7 +37,7 @@ export function buildListingJsonLd(params: {
   city?: string | null
   district?: string | null
   offerType?: 'satılık' | 'kiralık'
-}): Record<string, unknown> {
+}): JsonLdObject {
   const {
     title,
     description,
@@ -45,8 +51,7 @@ export function buildListingJsonLd(params: {
     offerType,
   } = params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ld: Record<string, any> = {
+  const ld: JsonLdObject = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateListing',
     name: title,
@@ -55,6 +60,7 @@ export function buildListingJsonLd(params: {
   }
 
   if (imageUrl) ld.image = imageUrl
+
   if (price) {
     ld.offers = {
       '@type': 'Offer',
@@ -89,11 +95,10 @@ export function buildOrganizationJsonLd(params: {
   logoUrl?: string | null
   instagram?: string | null
   facebook?: string | null
-}): Record<string, unknown> {
+}): JsonLdObject {
   const { name, url, phone, email, address, city, logoUrl, instagram, facebook } = params
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ld: Record<string, any> = {
+  const ld: JsonLdObject = {
     '@context': 'https://schema.org',
     '@type': 'RealEstateAgent',
     name,

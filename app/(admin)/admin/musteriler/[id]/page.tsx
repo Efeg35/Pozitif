@@ -89,20 +89,23 @@ export default async function MusteriDetayPage({ params }: Props) {
             </span>
           </div>
         )}
-        {customer.phone && (
-          <a
-            href={buildWhatsappUrl(
-              customer.phone,
-              buildCustomerWhatsappMessage({ customerName: customer.full_name })
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors"
-          >
-            <MessageCircle className="h-4 w-4" />
-            WhatsApp
-          </a>
-        )}
+        {customer.phone && (() => {
+          const waLink = buildWhatsappUrl(
+            customer.phone,
+            buildCustomerWhatsappMessage({ customerName: customer.full_name })
+          )
+          return waLink ? (
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors"
+            >
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp
+            </a>
+          ) : null
+        })()}
       </div>
 
       {/* Appointments */}

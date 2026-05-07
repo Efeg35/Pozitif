@@ -7,6 +7,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { settingsSchema } from '@/lib/schemas/settings.schema'
 import type { OfficeSettings } from '@/lib/types'
 
@@ -107,6 +108,12 @@ export async function updateOfficeSettings(
     console.error('[updateOfficeSettings]', result.error?.message)
     return { success: false, error: result.error?.message ?? 'Kayıt başarısız.' }
   }
+
+  // Revalidate all pages that render office settings data
+  revalidatePath('/')
+  revalidatePath('/iletisim')
+  revalidatePath('/ilanlar')
+  revalidatePath('/admin/ayarlar')
 
   return { success: true, data: result.data as OfficeSettings }
 }

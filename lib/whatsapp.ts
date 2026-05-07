@@ -6,35 +6,45 @@
 
 /**
  * Normalize a phone number for use in wa.me URLs.
- * Strips spaces, dashes, parentheses, then applies Turkish prefix logic.
+ * Returns null if the phone is missing or too short to be valid.
  */
-export function normalizePhoneForWhatsapp(phone: string): string {
-  // Remove all non-digit characters except leading +
-  const stripped = phone.replace(/[\s\-().]/g, '')
+export function normalizePhoneForWhatsapp(phone?: string | null): string | null {
+  if (!phone) return null
 
-  // Already has country code with +
-  if (stripped.startsWith('+')) {
-    return stripped.slice(1) // remove the +
+  // Remove all non-digit characters (spaces, dashes, parens, dots, +)
+  const digits = phone.replace(/\D/g, '')
+
+  // Turkish local number starting with 0: 0xxxxxxxxxx (11 digits)
+  if (digits.startsWith('0') && digits.length === 11) {
+    return '90' + digits.slice(1)
   }
 
-  // Turkish local number starting with 0
-  if (stripped.startsWith('0')) {
-    return '90' + stripped.slice(1)
+  // Turkish number without prefix: 5xxxxxxxxx or 2xxxxxxxxx (10 digits)
+  if (/^[2-9]/.test(digits) && digits.length === 10) {
+    return '90' + digits
   }
 
-  // Turkish number starting with 5xx (mobile) or 2xx/3xx (landline) without prefix
-  if (/^[2-9]/.test(stripped) && stripped.length === 10) {
-    return '90' + stripped
+  // Already has Turkish country code: 90xxxxxxxxxx (12 digits)
+  if (digits.startsWith('90') && digits.length === 12) {
+    return digits
   }
 
-  return stripped
+  // International number with country code (at least 10 digits total)
+  if (digits.length >= 10) {
+    return digits
+  }
+
+  // Too short / unrecognizable — do not produce a broken link
+  return null
 }
 
 /**
  * Build a wa.me URL for a given phone number and optional pre-filled text.
+ * Returns null if the phone cannot be normalized.
  */
-export function buildWhatsappUrl(phone: string, text?: string): string {
+export function buildWhatsappUrl(phone?: string | null, text?: string): string | null {
   const normalized = normalizePhoneForWhatsapp(phone)
+  if (!normalized) return null
   const base = `https://wa.me/${normalized}`
   if (!text) return base
   return `${base}?text=${encodeURIComponent(text)}`
@@ -42,14 +52,16 @@ export function buildWhatsappUrl(phone: string, text?: string): string {
 
 /**
  * Build a WhatsApp message for a specific listing inquiry.
+ * Link uses /ilanlar/{id}/{slug} format.
  */
 export function buildListingWhatsappMessage(params: {
   listingTitle: string
   listingId: string
+  listingSlug: string
   siteUrl: string
 }): string {
-  const { listingTitle, listingId, siteUrl } = params
-  return `Merhaba! "${listingTitle}" ilanı hakkında bilgi almak istiyorum.\n${siteUrl}/ilanlar/${listingId}`
+  const { listingTitle, listingId, listingSlug, siteUrl } = params
+  return `Merhaba! "${listingTitle}" ilanı hakkında bilgi almak istiyorum.\n${siteUrl}/ilanlar/${listingId}/${listingSlug}`
 }
 
 /**
@@ -58,8 +70,7 @@ export function buildListingWhatsappMessage(params: {
 export function buildCustomerWhatsappMessage(params: {
   customerName: string
 }): string {
-  const { customerName } = params
-  return `Merhaba ${customerName}, sizi aramak istedim.`
+  return `Merhaba ${params.customerName}, sizi aramak istedim.`
 }
 
 /**

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Phone, Mail, MapPin } from 'lucide-react'
 import Navbar from '@/components/public/Navbar'
-import { getOfficeSettings } from '@/app/actions/public.actions'
+import { getOfficeSettings } from '@/app/actions/settings.actions'
 
 // Lucide doesn't include Instagram/Facebook — use minimal inline SVGs
 function InstagramIcon({ className }: { className?: string }) {
