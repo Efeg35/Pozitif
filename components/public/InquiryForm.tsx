@@ -25,9 +25,10 @@ type FormValues = z.infer<typeof formSchema>
 interface InquiryFormProps {
   listingId: string | null
   listingTitle: string
+  source?: string
 }
 
-export default function InquiryForm({ listingId, listingTitle }: InquiryFormProps) {
+export default function InquiryForm({ listingId, listingTitle, source }: InquiryFormProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -50,6 +51,7 @@ export default function InquiryForm({ listingId, listingTitle }: InquiryFormProp
     if (values.email) formData.set('email', values.email)
     if (values.message) formData.set('message', values.message)
     if (listingId) formData.set('listingId', listingId)
+    if (source) formData.set('source', source)
     // Honeypot stays empty — bots fill it, humans don't see it
     formData.set('honeypot', '')
 

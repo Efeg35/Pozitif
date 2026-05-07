@@ -10,6 +10,7 @@ const inquirySchema = z
     email: z.string().email('Geçerli bir e-posta girin').optional().or(z.literal('')),
     message: z.string().max(500, 'Mesaj en fazla 500 karakter olabilir').optional(),
     listingId: z.string().uuid().optional().nullable(),
+    source: z.string().max(100).optional(),
     honeypot: z.string().optional(),
   })
   .refine((data) => Boolean(data.phone || data.email), {
@@ -28,6 +29,7 @@ export async function submitInquiry(formData: FormData): Promise<InquiryResult> 
     email: (formData.get('email') as string) || undefined,
     message: (formData.get('message') as string) || undefined,
     listingId: formData.get('listingId') as string | null,
+    source: (formData.get('source') as string) || undefined,
     honeypot: (formData.get('honeypot') as string) || undefined,
   }
 
@@ -44,7 +46,7 @@ export async function submitInquiry(formData: FormData): Promise<InquiryResult> 
     return { success: false, error: firstError, fieldErrors }
   }
 
-  const { name, phone, email, message, listingId } = parsed.data
+  const { name, phone, email, message, listingId, source } = parsed.data
 
   const supabase = await createClient()
 
@@ -54,6 +56,7 @@ export async function submitInquiry(formData: FormData): Promise<InquiryResult> 
     email: email || null,
     message: message || null,
     listing_id: listingId || null,
+    source: source || null,
     honeypot: null,
     status: 'yeni',
   })

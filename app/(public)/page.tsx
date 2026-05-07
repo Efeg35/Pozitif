@@ -8,11 +8,21 @@ import HeroSearch from '@/components/public/HeroSearch'
 import { IZMIR_COASTAL_DISTRICTS } from '@/lib/constants'
 import { formatPrice } from '@/lib/utils'
 import type { PublicListing } from '@/app/actions/public.actions'
+import { getOfficeSettings } from '@/app/actions/settings.actions'
+import StructuredData, { buildOrganizationJsonLd } from '@/components/public/StructuredData'
+import { getSiteUrl } from '@/lib/env'
 
 export const metadata: Metadata = {
   title: 'Pozitif Gayrimenkul | İzmir Gayrimenkul',
   description:
     "İzmir'de satılık ve kiralık daire, villa, arsa ilanları. Karşıyaka, Çeşme, Urla, Bornova ve tüm İzmir ilçelerinde güvenilir emlak danışmanlığı.",
+  openGraph: {
+    title: 'Pozitif Gayrimenkul | İzmir Gayrimenkul',
+    description:
+      "İzmir'de satılık ve kiralık daire, villa, arsa ilanları. Güvenilir emlak danışmanlığı.",
+    type: 'website',
+    locale: 'tr_TR',
+  },
 }
 
 // ── Coastal district data — imageUrl ready for future photo support ──────────
@@ -37,10 +47,24 @@ const DEFAULT_DISTRICT: DistrictConfig = { bg: 'bg-zinc-50', text: 'text-zinc-70
 const HERO_FALLBACK_SRC = '/images/hero-fallback.jpg'
 
 export default async function HomePage() {
-  const [featuredListings, districts] = await Promise.all([
+  const [featuredListings, districts, officeSettings] = await Promise.all([
     getFeaturedListings(),
     getDistrictsWithListings(),
+    getOfficeSettings(),
   ])
+
+  const siteUrl = getSiteUrl()
+  const orgJsonLd = buildOrganizationJsonLd({
+    name: officeSettings?.office_name ?? 'Pozitif Gayrimenkul',
+    url: siteUrl,
+    phone: officeSettings?.phone,
+    email: officeSettings?.email,
+    address: officeSettings?.address,
+    city: officeSettings?.city,
+    logoUrl: officeSettings?.logo_url,
+    instagram: officeSettings?.instagram_url,
+    facebook: officeSettings?.facebook_url,
+  })
 
   const heroListing: PublicListing | undefined = featuredListings.find(
     (l) => l.listing_images.length > 0
@@ -55,6 +79,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col bg-stone-50">
+      <StructuredData data={orgJsonLd} />
 
       {/* ── HERO ──────────────────────────────────────────────────────── */}
       <section className="bg-white border-b border-zinc-100">

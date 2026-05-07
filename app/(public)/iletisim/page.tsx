@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import { Phone, Mail, MapPin, Clock } from 'lucide-react'
-import { getOfficeSettings } from '@/app/actions/public.actions'
+import { getOfficeSettings } from '@/app/actions/settings.actions'
 import InquiryForm from '@/components/public/InquiryForm'
+import MapEmbed from '@/components/public/MapEmbed'
+import StructuredData, { buildOrganizationJsonLd } from '@/components/public/StructuredData'
+import { buildWhatsappUrl } from '@/lib/whatsapp'
+import { getSiteUrl } from '@/lib/env'
 
 export const metadata: Metadata = {
   title: 'İletişim | Pozitif Gayrimenkul',
@@ -10,14 +14,31 @@ export const metadata: Metadata = {
 
 export default async function ContactPage() {
   const settings = await getOfficeSettings()
+  const siteUrl = getSiteUrl()
 
   const waPhone = settings?.whatsapp ?? settings?.phone
-  const waLink = waPhone
-    ? `https://wa.me/${waPhone.replace(/\D/g, '')}`
-    : null
+  const waLink = waPhone ? buildWhatsappUrl(waPhone, 'Merhaba, bilgi almak istiyorum.') : null
+
+  const orgJsonLd = buildOrganizationJsonLd({
+    name: settings?.office_name ?? 'Pozitif Gayrimenkul',
+    url: siteUrl,
+    phone: settings?.phone,
+    email: settings?.email,
+    address: settings?.address,
+    city: settings?.city,
+    logoUrl: settings?.logo_url,
+    instagram: settings?.instagram_url,
+    facebook: settings?.facebook_url,
+  })
+
+  const fullAddress = [settings?.address, settings?.district, settings?.city]
+    .filter(Boolean)
+    .join(', ')
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <StructuredData data={orgJsonLd} />
+
       <div className="mb-10 text-center">
         <h1 className="text-3xl font-bold text-zinc-900 sm:text-4xl">İletişim</h1>
         <p className="mt-3 text-zinc-500">
@@ -26,7 +47,7 @@ export default async function ContactPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
-        {/* LEFT: Contact info */}
+        {/* LEFT: Contact info + map */}
         <div className="flex flex-col gap-6">
           <h2 className="text-xl font-semibold text-zinc-800">İletişim Bilgileri</h2>
 
@@ -51,9 +72,7 @@ export default async function ContactPage() {
               <ContactCard
                 icon={<MapPin className="h-5 w-5 text-blue-600" />}
                 label="Adres"
-                value={[settings.address, settings.district, settings.city]
-                  .filter(Boolean)
-                  .join(', ')}
+                value={fullAddress || settings.address}
               />
             )}
             <div className="flex items-start gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
@@ -72,7 +91,12 @@ export default async function ContactPage() {
             </div>
           </div>
 
-          {/* Social + WhatsApp */}
+          {/* Map embed — office address */}
+          {fullAddress && (
+            <MapEmbed address={fullAddress} className="w-full h-56 rounded-xl border border-zinc-200" />
+          )}
+
+          {/* WhatsApp CTA */}
           {waLink && (
             <a
               href={waLink}
@@ -116,7 +140,7 @@ export default async function ContactPage() {
         {/* RIGHT: Inquiry form */}
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-xl font-semibold text-zinc-800">Mesaj Gönderin</h2>
-          <InquiryForm listingId={null} listingTitle="Genel İletişim" />
+          <InquiryForm listingId={null} listingTitle="Genel İletişim" source="iletisim" />
         </div>
       </div>
     </div>

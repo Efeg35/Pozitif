@@ -2,12 +2,17 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { MapPin, Phone, Maximize2, BedDouble, Bath, Layers, Calendar, Flame, ChevronRight, MessageCircle } from 'lucide-react'
-import { getPublicListing, getRelatedListings, getOfficeSettings } from '@/app/actions/public.actions'
+import { getPublicListing, getRelatedListings } from '@/app/actions/public.actions'
+import { getOfficeSettings } from '@/app/actions/settings.actions'
 import ListingGallery from '@/components/public/ListingGallery'
 import InquiryForm from '@/components/public/InquiryForm'
 import ListingGrid from '@/components/public/ListingGrid'
+import MapEmbed from '@/components/public/MapEmbed'
+import StructuredData, { buildListingJsonLd } from '@/components/public/StructuredData'
 import { formatPrice } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, LISTING_TYPE_LABELS, STATUS_LABELS } from '@/lib/constants'
+import { buildWhatsappUrl, buildListingWhatsappMessage } from '@/lib/whatsapp'
+import { getSiteUrl } from '@/lib/env'
 
 interface Params {
   id: string
@@ -19,17 +24,21 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   if (!listing) return { title: 'İlan bulunamadı | Pozitif Gayrimenkul' }
 
   const coverImage = listing.listing_images.find((img) => img.is_cover) ?? listing.listing_images[0]
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pozitifemiak.com'
+  const siteUrl = getSiteUrl()
+  const canonicalUrl = `${siteUrl}/ilanlar/${listing.id}/${listing.slug}`
 
   return {
     title: `${listing.title} | Pozitif Gayrimenkul`,
     description:
       listing.description?.slice(0, 160) ??
       `${LISTING_TYPE_LABELS[listing.listing_type] ?? ''} ${PROPERTY_TYPE_LABELS[listing.property_type] ?? ''} — ${listing.district ?? ''} ${listing.city}`,
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       title: listing.title,
       images: coverImage ? [coverImage.url] : [],
-      url: `${siteUrl}/ilanlar/${listing.id}/${listing.slug}`,
+      url: canonicalUrl,
+      type: 'website',
+      locale: 'tr_TR',
     },
     robots: { index: true, follow: true },
   }
@@ -48,16 +57,36 @@ export default async function ListingDetailPage({ params }: { params: Params }) 
       ? await getRelatedListings(listing.id, listing.district, listing.listing_type)
       : []
 
+  const siteUrl = getSiteUrl()
   const agent = listing.agents
   const showStatusBadge = listing.status === 'satildi' || listing.status === 'kiralandi'
 
   const waPhone = settings?.whatsapp ?? settings?.phone
-  const waMessage = encodeURIComponent(
-    `Merhaba, "${listing.title}" ilanı hakkında bilgi almak istiyorum.`
-  )
   const waLink = waPhone
-    ? `https://wa.me/${waPhone.replace(/\D/g, '')}?text=${waMessage}`
+    ? buildWhatsappUrl(
+        waPhone,
+        buildListingWhatsappMessage({
+          listingTitle: listing.title,
+          listingId: listing.id,
+          siteUrl,
+        })
+      )
     : null
+
+  const coverImage = listing.listing_images.find((img) => img.is_cover) ?? listing.listing_images[0]
+  const listingJsonLd = buildListingJsonLd({
+    title: listing.title,
+    description:
+      listing.description?.slice(0, 300) ??
+      `${LISTING_TYPE_LABELS[listing.listing_type] ?? ''} ${PROPERTY_TYPE_LABELS[listing.property_type] ?? ''}`,
+    url: `${siteUrl}/ilanlar/${listing.id}/${listing.slug}`,
+    imageUrl: coverImage?.url,
+    price: listing.price,
+    address: listing.address,
+    city: listing.city,
+    district: listing.district,
+    offerType: listing.listing_type === 'satilik' ? 'satılık' : 'kiralık',
+  })
 
   const roomsLabel =
     listing.rooms != null && listing.living_rooms != null
@@ -66,8 +95,12 @@ export default async function ListingDetailPage({ params }: { params: Params }) 
         ? `${listing.rooms} oda`
         : null
 
+  const fullAddress = [listing.address, listing.district, listing.city].filter(Boolean).join(', ')
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <StructuredData data={listingJsonLd} />
+
       {/* Breadcrumb */}
       <nav className="mb-6 flex flex-wrap items-center gap-1.5 text-sm text-zinc-500">
         <Link href="/" className="hover:text-zinc-700">Ana Sayfa</Link>
@@ -152,10 +185,10 @@ export default async function ListingDetailPage({ params }: { params: Params }) 
             </div>
           )}
 
-          {/* Location */}
+          {/* Location + Map */}
           <div>
             <h2 className="mb-3 text-lg font-semibold text-zinc-800">Konum</h2>
-            <div className="flex items-start gap-2 text-sm text-zinc-600">
+            <div className="flex items-start gap-2 text-sm text-zinc-600 mb-3">
               <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
               <div>
                 {listing.address && <p>{listing.address}</p>}
@@ -164,10 +197,12 @@ export default async function ListingDetailPage({ params }: { params: Params }) 
                 </p>
               </div>
             </div>
-            {/* Map placeholder */}
-            <div className="mt-3 flex h-32 items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
-              <p className="text-xs text-zinc-400">Harita yakında eklenecek</p>
-            </div>
+            <MapEmbed
+              latitude={listing.latitude}
+              longitude={listing.longitude}
+              address={fullAddress || undefined}
+              className="w-full h-56 rounded-xl border border-zinc-200"
+            />
           </div>
 
           {/* Related listings */}
@@ -233,7 +268,7 @@ export default async function ListingDetailPage({ params }: { params: Params }) 
             {/* Inquiry form card */}
             <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-base font-semibold text-zinc-800">Bilgi Al</h3>
-              <InquiryForm listingId={listing.id} listingTitle={listing.title} />
+              <InquiryForm listingId={listing.id} listingTitle={listing.title} source="ilan-detay" />
             </div>
 
             {/* WhatsApp button */}

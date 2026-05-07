@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, CalendarDays, Phone, Mail, MapPin } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Phone, Mail, MapPin, MessageCircle } from 'lucide-react'
 import { getCustomer, updateCustomer } from '@/app/actions/customer.actions'
 import CustomerForm from '@/components/admin/CustomerForm'
 import DeleteCustomerButton from '@/components/admin/DeleteCustomerButton'
@@ -11,6 +11,7 @@ import {
   INTEREST_TYPE_LABELS,
 } from '@/lib/constants'
 import type { CustomerStatus, AppointmentStatus, InterestType } from '@/lib/types'
+import { buildWhatsappUrl, buildCustomerWhatsappMessage } from '@/lib/whatsapp'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -87,6 +88,20 @@ export default async function MusteriDetayPage({ params }: Props) {
                 : customer.preferred_districts}
             </span>
           </div>
+        )}
+        {customer.phone && (
+          <a
+            href={buildWhatsappUrl(
+              customer.phone,
+              buildCustomerWhatsappMessage({ customerName: customer.full_name })
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+            WhatsApp
+          </a>
         )}
       </div>
 
